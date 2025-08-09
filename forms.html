@@ -1,0 +1,1003 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PBIS Office Referral</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+    <!-- Tom Select CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <style>
+        body {
+            padding-top: 20px;
+            padding-bottom: 50px;
+            font-family: 'Inter', sans-serif; /* Recommended font */
+            background-color: #f8f9fa;
+        }
+        .header {
+            background-color: #00008B; /* Dark Blue */
+            color: white;
+            padding: 15px 0;
+            margin-bottom: 20px;
+        }
+        .header img { /* This rule is now effectively unused for the main header banner */
+            max-width: 100%;
+            height: auto;
+            border-radius: 5px;
+        }
+        .banner {
+            background-color: #00008B; /* Dark Blue */
+            color: white;
+            font-family: serif;
+            font-weight: bold;
+            padding: 20px 30px 10px 30px;
+            /* Adjust margin for full width appearance */
+            margin: 0px -20px; /* Reset original margin and let container handle padding */
+            border-radius: 0; /* No rounded corners for the overall header */
+            text-align: center;
+        }
+        .banner h1 {
+            margin: 0; /* Remove default h1 margin */
+            font-size: 56pt; /* Changed to 56pt as requested */
+        }
+
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .req {
+            color: red;
+        }
+        .form-check-label {
+            font-weight: normal; /* Override Bootstrap bold for labels */
+        }
+        .form-label {
+            font-weight: bold;
+            color: #333;
+        }
+        .card-panel {
+            background-color: #f0f0f0; /* Light grey for administrative section */
+            padding: 20px;
+            margin-top: 20px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+        textarea {
+            resize: vertical; /* Allow vertical resizing of textareas */
+        }
+        .submit-btn {
+            background-color: #0d6efd !important; /* Bootstrap blue */
+            border-radius: 8px;
+            padding: 10px 20px;
+            font-size: 1.1em;
+            transition: background-color 0.3s ease;
+        }
+        .submit-btn:hover {
+            background-color: #0b5ed7 !important;
+        }
+        .form-text {
+            color: #6c757d; /* Muted text for help/info */
+            font-size: 0.85em;
+        }
+        input[type="radio"], input[type="checkbox"] {
+            margin-right: 8px; /* Space between checkbox/radio and label */
+        }
+        .tom-select .ts-control {
+            border-radius: 0.375rem; /* Match Bootstrap's form-control border-radius */
+            border-color: #dee2e6;
+        }
+        .tom-select.is-invalid .ts-control {
+            border-color: #dc3545;
+            padding-right: calc(1.5em + 0.75rem);
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right calc(0.375em + 0.1875rem) center;
+            background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+        }
+        .tom-select.is-valid .ts-control {
+            border-color: #198754;
+            padding-right: calc(1.5em + 0.75rem);
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%23198754' d='M2.3 6.73L.6 4.53c-.4-1.04.46-1.4 1.1-.8l1.1 1.4 3.4-3.8c.6-.63 1.6-.22 1.1.4L2.3 6.73z'/%3e%3csvg%3e");
+            background-repeat: no-repeat;
+            background-position: right calc(0.375em + 0.1875rem) center;
+            background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+        }
+        .invalid-feedback {
+            display: none; /* Hide by default */
+            width: 100%;
+            margin-top: 0.25rem;
+            font-size: 0.875em;
+            color: #dc3545;
+        }
+        .is-invalid + .invalid-feedback {
+            display: block; /* Show when invalid */
+        }
+        /* Specific styling for radio/checkbox validation messages */
+        .form-check.is-invalid .form-check-label {
+            color: #dc3545;
+        }
+        .form-check.is-invalid + .invalid-feedback {
+            margin-top: -10px; /* Adjust margin for checkbox/radio validation */
+            margin-left: 25px;
+        }
+    </style>
+</head>
+<body>
+    <header class="header text-white text-center py-3">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-12">
+                    <div class="banner">
+                        <h1>OFMS Referral Form</h1>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="container my-4">
+        <form id="referralForm" class="needs-validation" novalidate>
+            <p class="text-center"><span class="req">*</span> Indicates a required field.</p>
+
+            <!-- Student Name and Referral Type Section -->
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="studentName" class="form-label">Student Name <span class="req">*</span></label>
+                    <select id="studentName" name="studentName" class="form-control" required>
+                        <option value="">Select Student...</option>
+                        <?!= studentNames.map(name => `<option value="${name}">${name}</option>`).join('') ?>
+                    </select>
+                    <div class="invalid-feedback">
+                        Please select a student name.
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label mb-2">Referral Type <span class="req">*</span></label>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="referralType" id="referralMinor" value="Minor" checked required>
+                        <label class="form-check-label" for="referralMinor">
+                            Minor
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="referralType" id="referralMajor" value="Major" required>
+                        <label class="form-check-label" for="referralMajor">
+                            Major
+                        </label>
+                        <div class="invalid-feedback">
+                            Please select a referral type.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Minor Referral Section -->
+            <div id="minorFormSection" class="row">
+                <hr class="my-4">
+                <h5 class="text-primary mb-3">Minor Referral Details</h5>
+                <div class="col-md-6 mb-3">
+                    <label for="minorStaffName" class="form-label">Referring Staff Name (Last Name, First Name) <span class="req">*</span></label>
+                    <input type="text" class="form-control" id="minorStaffName" name="minorStaffName" required>
+                    <div class="invalid-feedback">
+                        Please enter the referring staff member's name.
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="minorStaffEmail" class="form-label">Referring Staff Email <span class="req">*</span></label>
+                    <input type="email" class="form-control" id="minorStaffEmail" name="minorStaffEmail" required>
+                    <div class="invalid-feedback">
+                        Please enter a valid email address.
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="minorDateOfIncident" class="form-label">Date of Incident <span class="req">*</span></label>
+                    <input type="date" class="form-control" id="minorDateOfIncident" name="minorDateOfIncident" required>
+                    <div class="invalid-feedback">
+                        Please select a date.
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="minorTimeOfIncident" class="form-label">Time of Incident</label>
+                    <input type="time" class="form-control" id="minorTimeOfIncident" name="minorTimeOfIncident">
+                </div>
+
+                <div class="col-12 mb-3">
+                    <label for="minorLocation" class="form-label">Location <span class="req">*</span></label>
+                    <select id="minorLocation" name="minorLocation" class="form-select" required>
+                        <option value="">Select...</option>
+                        <option value="Classroom">Classroom</option>
+                        <option value="Hallway">Hallway</option>
+                        <option value="Restroom">Restroom</option>
+                        <option value="Cafeteria">Cafeteria</option>
+                        <option value="Music Room">Music Room</option>
+                        <option value="Gym">Gym</option>
+                        <option value="Locker Room">Locker Room</option>
+                        <option value="Bus Zone">Bus Zone</option>
+                        <option value="Bus">Bus</option>
+                        <option value="Office">Office</option>
+                        <option value="Other">Other</option>
+                    </select>
+                    <input type="text" class="form-control mt-2" id="minorLocationOther" placeholder="Please specify." style="display: none;">
+                    <div class="invalid-feedback">
+                        Please select a location.
+                    </div>
+                </div>
+
+                <div class="col-12 mb-3">
+                    <label class="form-label">Minor Infraction(s) <span class="req">*</span></label>
+                    <div class="form-check-group">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="minorInfraction" value="Tardies/Late to class" id="minorInfraction1">
+                            <label class="form-check-label" for="minorInfraction1">Tardies/Late to class</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="minorInfraction" value="Cell Phone Violation" id="minorInfraction3">
+                            <label class="form-check-label" for="minorInfraction3">Cell Phone Violation</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="minorInfraction" value="Lack of Materials" id="minorInfraction4">
+                            <label class="form-check-label" for="minorInfraction4">Lack of Materials</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="minorInfraction" value="Classroom Behavior" id="minorInfraction5">
+                            <label class="form-check-label" for="minorInfraction5">Classroom Behavior</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="minorInfraction" value="Disruptive Classroom Behavior" id="minorInfraction6">
+                            <label class="form-check-label" for="minorInfraction6">Disruptive Classroom Behavior</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="minorInfraction" value="Horseplay" id="minorInfraction7">
+                            <label class="form-check-label" for="minorInfraction7">Horseplay</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="minorInfraction" value="Public Display of Affection" id="minorInfraction8">
+                            <label class="form-check-label" for="minorInfraction8">Public Display of Affection</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="minorInfraction" value="Electronic Device" id="minorInfraction9">
+                            <label class="form-check-label" for="minorInfraction9">Electronic Device</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="minorInfraction" value="Profanity (Low Level)" id="minorInfraction10">
+                            <label class="form-check-label" for="minorInfraction10">Profanity (Low Level)</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="minorInfraction" value="Loitering" id="minorInfraction11">
+                            <label class="form-check-label" for="minorInfraction11">Loitering</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="minorInfraction" value="Inappropriate Language" id="minorInfraction12">
+                            <label class="form-check-label" for="minorInfraction12">Inappropriate Language</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="minorInfraction" value="Academic Dishonesty" id="minorInfraction13">
+                            <label class="form-check-label" for="minorInfraction13">Academic Dishonesty</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="minorInfraction" value="Vandalism (low level)" id="minorInfraction14">
+                            <label class="form-check-label" for="minorInfraction14">Vandalism (low level)</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="minorInfraction" value="Bus Behavior" id="minorInfraction15">
+                            <label class="form-check-label" for="minorInfraction15">Bus Behavior</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="minorInfraction" value="Cafeteria Behavior" id="minorInfraction16">
+                            <label class="form-check-label" for="minorInfraction16">Cafeteria Behavior</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="minorInfraction" value="Other" id="minorInfractionOtherCheck">
+                            <label class="form-check-label" for="minorInfractionOtherCheck">Other</label>
+                            <input type="text" class="form-control mt-2" id="minorInfractionOtherText" placeholder="Please specify." style="display: none;">
+                        </div>
+                    </div>
+                    <div class="invalid-feedback">
+                        Please select at least one minor infraction.
+                    </div>
+                </div>
+
+                <div class="col-12 mb-3">
+                    <label for="minorDescription" class="form-label">Description of Infraction <span class="req">*</span></label>
+                    <textarea class="form-control" id="minorDescription" name="minorDescription" rows="3" required></textarea>
+                    <div class="invalid-feedback">
+                        Please provide a description.
+                    </div>
+                </div>
+
+                <div class="col-12 mb-3">
+                    <label class="form-label">Perceived Motivation <span class="req">*</span></label>
+                    <div class="form-check-group">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="minorPerceivedMotivation" value="Obtain Peer Attention" id="minorMotivation1">
+                            <label class="form-check-label" for="minorMotivation1">Obtain Peer Attention</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="minorPerceivedMotivation" value="Avoid Tasks/Activities" id="minorMotivation2">
+                            <label class="form-check-label" for="minorMotivation2">Avoid Tasks/Activities</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="minorPerceivedMotivation" value="Obtain Items" id="minorMotivation3">
+                            <label class="form-check-label" for="minorMotivation3">Obtain Items</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="minorPerceivedMotivation" value="Obtain Adult Attention" id="minorMotivation4">
+                            <label class="form-check-label" for="minorMotivation4">Obtain Adult Attention</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="minorPerceivedMotivation" value="Avoid Adult" id="minorMotivation5">
+                            <label class="form-check-label" for="minorMotivation5">Avoid Adult</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="minorPerceivedMotivation" value="Avoid Peer" id="minorMotivation6">
+                            <label class="form-check-label" for="minorMotivation6">Avoid Peer</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="minorPerceivedMotivation" value="Avoid Work/Activities" id="minorMotivation7">
+                            <label class="form-check-label" for="minorMotivation7">Avoid Work/Activities</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="minorPerceivedMotivation" value="Peer to Peer Issues" id="minorMotivation8">
+                            <label class="form-check-label" for="minorMotivation8">Peer to Peer Issues</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="minorPerceivedMotivation" value="Social Emotional Issues" id="minorMotivation9">
+                            <label class="form-check-label" for="minorMotivation9">Social Emotional Issues</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="minorPerceivedMotivation" value="School Avoidance" id="minorMotivation10">
+                            <label class="form-check-label" for="minorMotivation10">School Avoidance</label>
+                        </div>
+                    </div>
+                    <div class="invalid-feedback">
+                        Please select at least one perceived motivation.
+                    </div>
+                </div>
+
+                <div class="col-12 mb-3">
+                    <label class="form-label">Previous Action(s) Taken <span class="req">*</span></label>
+                    <div class="form-check-group">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="minorActionTaken" value="Warning" id="minorAction1">
+                            <label class="form-check-label" for="minorAction1">Warning</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="minorActionTaken" value="Assigned Different Seat" id="minorAction2">
+                            <label class="form-check-label" for="minorAction2">Assigned Different Seat</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="minorActionTaken" value="Called Home" id="minorAction3">
+                            <label class="form-check-label" for="minorAction3">Called Home</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="minorActionTaken" value="Behavior Contract" id="minorAction4">
+                            <label class="form-check-label" for="minorAction4">Behavior Contract</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="minorActionTaken" value="Conference with Student" id="minorAction5">
+                            <label class="form-check-label" for="minorAction5">Conference with Student</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="minorActionTaken" value="Conference with Team Teachers" id="minorAction6">
+                            <label class="form-check-label" for="minorAction6">Conference with Team Teachers</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="minorActionTaken" value="Conference with Parent" id="minorAction7">
+                            <label class="form-check-label" for="minorAction7">Conference with Parent</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="minorActionTaken" value="Detention" id="minorAction8">
+                            <label class="form-check-label" for="minorAction8">Detention</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="minorActionTaken" value="Exclusion from Participation" id="minorAction9">
+                            <label class="form-check-label" for="minorAction9">Exclusion from Participation</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="minorActionTaken" value="Guidance Referral" id="minorAction10">
+                            <label class="form-check-label" for="minorAction10">Guidance Referral</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="minorActionTaken" value="Restorative Meeting" id="minorAction11">
+                            <label class="form-check-label" for="minorAction11">Restorative Meeting</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="minorActionTaken" value="Behavior Slips" id="minorAction12">
+                            <label class="form-check-label" for="minorAction12">Behavior Slips</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="minorActionTaken" value="Other" id="minorActionOtherCheck">
+                            <label class="form-check-label" for="minorActionOtherCheck">Other</label>
+                            <input type="text" class="form-control mt-2" id="minorActionOtherText" placeholder="Please specify." style="display: none;">
+                        </div>
+                    </div>
+                    <div class="invalid-feedback">
+                        Please select at least one action taken.
+                    </div>
+                </div>
+
+                <div class="col-12 mb-3">
+                    <label for="minorComments" class="form-label">Other Information or Comments:</label>
+                    <textarea class="form-control" id="minorComments" name="minorComments" rows="3"></textarea>
+                </div>
+            </div>
+
+            <!-- Major Referral Section (Initially Hidden) -->
+            <div id="majorFormSection" class="row" style="display: none;">
+                <hr class="my-4">
+                <h5 class="text-danger mb-3">Major Referral Details</h5>
+                <div class="col-md-6 mb-3">
+                    <label for="majorStaffName" class="form-label">Referring Staff Name (Last Name, First Name) <span class="req">*</span></label>
+                    <input id="majorStaffName" type="text" name="majorStaffName" class="form-control" required>
+                    <div class="invalid-feedback">
+                        Please enter the referring staff member's name.
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="majorStaffEmail" class="form-label">Referring Staff Email <span class="req">*</span></label>
+                    <input id="majorStaffEmail" type="email" name="majorStaffEmail" class="form-control" required>
+                    <div class="invalid-feedback">
+                        Please enter a valid email address.
+                    </div>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label for="majorDateOfIncident" class="form-label">Date of Incident</label>
+                    <input id="majorDateOfIncident" name="majorDateOfIncident" type="date" class="form-control">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="majorTimeOfIncident" class="form-label">Time of Incident</label>
+                    <input type="time" id="majorTimeOfIncident" name="majorTimeOfIncident" class="form-control">
+                </div>
+
+                <div class="col-12 mb-3">
+                    <label for="majorLocation" class="form-label">Location <span class="req">*</span></label>
+                    <select id="majorLocation" name="majorLocation" class="form-select" required>
+                        <option disabled selected value="">Select...</option>
+                        <option value="Classroom">Classroom</option>
+                        <option value="Hallway">Hallway</option>
+                        <option value="Cafeteria">Cafeteria</option>
+                        <option value="Music Room">Music Room</option>
+                        <option value="Restroom">Restroom</option>
+                        <option value="Bus">Bus</option>
+                        <option value="Bus Zone">Bus Zone</option>
+                        <option value="Gymnasium">Gymnasium</option>
+                        <option value="Locker Room">Locker Room</option>
+                        <option value="Office">Office</option>
+                        <option value="Other">Other</option>
+                    </select>
+                    <input id="majorLocationOther" type="text" class="form-control mt-2" placeholder="Please specify." style="display: none;">
+                    <div class="invalid-feedback">
+                        Please select a location.
+                    </div>
+                </div>
+
+                <div class="col-12 mb-3">
+                    <label class="form-label">Home Communication: <span class="req">*</span></label><br>
+                    <div class="form-check">
+                        <input name="homeCommunicationPhone" type="checkbox" value="Yes" id="homeCommPhone" class="form-check-input" required>
+                        <label class="form-check-label" for="homeCommPhone">Phone communication with parent/guardian?</label>
+                    </div>
+                    <div class="invalid-feedback">
+                        Please confirm home communication.
+                    </div>
+                </div>
+
+                <div class="col-12 mb-3">
+                    <label for="majorCommunicate" class="form-label">Details of Communication</label>
+                    <textarea id="majorCommunicate" name="majorCommunicate" class="form-control" rows="3"></textarea>
+                </div>
+
+                <div class="col-12 mb-3">
+                    <label class="form-label">Major Infraction(s) <span class="req">*</span></label>
+                    <div class="form-check-group">
+                        <div class="form-check">
+                            <input name="majorInfraction" type="checkbox" value="Absent/late to Class or School" id="majorInfraction1" class="form-check-input">
+                            <label class="form-check-label" for="majorInfraction1">Absent/late to Class or School</label>
+                        </div>
+                        <div class="form-check">
+                            <input name="majorInfraction" type="checkbox" value="High Intensity Disrespect to Staff" id="majorInfraction2" class="form-check-input">
+                            <label class="form-check-label" for="majorInfraction2">High Intensity Disrespect to Staff</label>
+                        </div>
+                        <div class="form-check">
+                            <input name="majorInfraction" type="checkbox" value="Disruption of Education" id="majorInfraction3" class="form-check-input">
+                            <label class="form-check-label" for="majorInfraction3">Disruption of Education</label>
+                        </div>
+                        <div class="form-check">
+                            <input name="majorInfraction" type="checkbox" value="Failure to Report for Detention" id="majorInfraction4" class="form-check-input">
+                            <label class="form-check-label" for="majorInfraction4">Failure to Report for Detention</label>
+                        </div>
+                        <div class="form-check">
+                            <input name="majorInfraction" type="checkbox" value="Failure to Follow Class Rules" id="majorInfraction5" class="form-check-input">
+                            <label class="form-check-label" for="majorInfraction5">Failure to Follow Class Rules</label>
+                        </div>
+                        <div class="form-check">
+                            <input name="majorInfraction" type="checkbox" value="Harrassment" id="majorInfraction6" class="form-check-input">
+                            <label class="form-check-label" for="majorInfraction6">Harrassment</label>
+                        </div>
+                        <div class="form-check">
+                            <input name="majorInfraction" type="checkbox" value="Horseplay" id="majorInfraction7" class="form-check-input">
+                            <label class="form-check-label" for="majorInfraction7">Horseplay</label>
+                        </div>
+                        <div class="form-check">
+                            <input name="majorInfraction" type="checkbox" value="Insubordination" id="majorInfraction8" class="form-check-input">
+                            <label class="form-check-label" for="majorInfraction8">Insubordination</label>
+                        </div>
+                        <div class="form-check">
+                            <input name="majorInfraction" type="checkbox" value="High Intensity Profanity" id="majorInfraction9" class="form-check-input">
+                            <label class="form-check-label" for="majorInfraction9">High Intensity Profanity</label>
+                        </div>
+                        <div class="form-check">
+                            <input name="majorInfraction" type="checkbox" value="Possession/Use/Sale of Alcohol/Drugs/Tobacco/Counterfeit" id="majorInfraction10" class="form-check-input">
+                            <label class="form-check-label" for="majorInfraction10">Possession/Use/Sale of Alcohol/Drugs/Tobacco/Counterfeit</label>
+                        </div>
+                        <div class="form-check">
+                            <input name="majorInfraction" type="checkbox" value="Participation in a Physical Altercation" id="majorInfraction11" class="form-check-input">
+                            <label class="form-check-label" for="majorInfraction11">Participation in a Physical Altercation</label>
+                        </div>
+                        <div class="form-check">
+                            <input name="majorInfraction" type="checkbox" value="Threatening Harm to Students or Staff" id="majorInfraction12" class="form-check-input">
+                            <label class="form-check-label" for="majorInfraction12">Threatening Harm to Students or Staff</label>
+                        </div>
+                        <div class="form-check">
+                            <input name="majorInfraction" type="checkbox" value="Vandalism" id="majorInfraction13" class="form-check-input">
+                            <label class="form-check-label" for="majorInfraction13">Vandalism</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="majorInfraction" value="Academic Dishonesty" id="majorInfraction14">
+                            <label class="form-check-label" for="majorInfraction14">Academic Dishonesty</label>
+                        </div>
+                        <div class="form-check">
+                            <input name="majorInfraction" type="checkbox" id="majorInfractionOtherCheck" value="Other" class="form-check-input">
+                            <label class="form-check-label" for="majorInfractionOtherCheck">Other</label>
+                            <input type="text" id="majorInfractionOtherText" placeholder="please specify" class="form-control mt-2" style="display: none;">
+                        </div>
+                    </div>
+                    <div class="invalid-feedback">
+                        Please select at least one infraction.
+                    </div>
+                </div>
+
+                <div class="col-12 mb-3">
+                    <label for="majorDescription" class="form-label">Description of Infraction<span class="req">*</span></label>
+                    <textarea id="majorDescription" name="majorDescription" class="form-control" rows="3" required></textarea>
+                    <div class="invalid-feedback">
+                        Please provide a description of the infraction.
+                    </div>
+                </div>
+
+                <div class="col-12 mb-3">
+                    <label class="form-label">Perceived Motivation <span class="req">*</span></label>
+                    <div class="form-check-group">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="majorPerceivedMotivation" value="Obtain Peer Attention" id="majorMotivation1">
+                            <label class="form-check-label" for="majorMotivation1">Obtain Peer Attention</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="majorPerceivedMotivation" value="Avoid Tasks/Activities" id="majorMotivation2">
+                            <label class="form-check-label" for="majorMotivation2">Avoid Tasks/Activities</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="majorPerceivedMotivation" value="Obtain Items" id="majorMotivation3">
+                            <label class="form-check-label" for="majorMotivation3">Obtain Items</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="majorPerceivedMotivation" value="Obtain Adult Attention" id="majorMotivation4">
+                            <label class="form-check-label" for="majorMotivation4">Obtain Adult Attention</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="majorPerceivedMotivation" value="Avoid Adult" id="majorMotivation5">
+                            <label class="form-check-label" for="majorMotivation5">Avoid Adult</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="majorPerceivedMotivation" value="Avoid Peer" id="majorMotivation6">
+                            <label class="form-check-label" for="majorMotivation6">Avoid Peer</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="majorPerceivedMotivation" value="Avoid Work/Activities" id="majorMotivation7">
+                            <label class="form-check-label" for="majorMotivation7">Avoid Work/Activities</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="majorPerceivedMotivation" value="Peer to Peer Issues" id="majorMotivation8">
+                            <label class="form-check-label" for="majorMotivation8">Peer to Peer Issues</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="majorPerceivedMotivation" value="Social Emotional Issues" id="majorMotivation9">
+                            <label class="form-check-label" for="majorMotivation9">Social Emotional Issues</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="majorPerceivedMotivation" value="School Avoidance" id="majorMotivation10">
+                            <label class="form-check-label" for="majorMotivation10">School Avoidance</label>
+                        </div>
+                    </div>
+                    <div class="invalid-feedback">
+                        Please select at least one perceived motivation.
+                    </div>
+                </div>
+
+                <div class="col-12 mb-3">
+                    <label class="form-label">Previous Action(s) Taken <span class="req">*</span></label>
+                    <div class="form-check-group">
+                        <div class="form-check">
+                            <input name="majorActionTaken" type="checkbox" value="Warning" id="majorAction1" class="form-check-input">
+                            <label class="form-check-label" for="majorAction1">Warning</label>
+                        </div>
+                        <div class="form-check">
+                            <input name="majorActionTaken" type="checkbox" value="Assigned Different Seat" id="majorAction2" class="form-check-input">
+                            <label class="form-check-label" for="majorAction2">Assigned Different Seat</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="majorActionTaken" value="Called Home" id="majorAction3" class="form-check-input">
+                            <label class="form-check-label" for="majorAction3">Called Home</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="majorActionTaken" value="Behavior Contract" id="majorAction4" class="form-check-input">
+                            <label class="form-check-label" for="majorAction4">Behavior Contract</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="majorActionTaken" value="Conference with Student" id="majorAction5" class="form-check-input">
+                            <label class="form-check-label" for="majorAction5">Conference with Student</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="majorActionTaken" value="Conference with Team Teachers" id="majorAction6" class="form-check-input">
+                            <label class="form-check-label" for="majorAction6">Conference with Team Teachers</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="majorActionTaken" value="Conference with Parent" id="majorAction7" class="form-check-input">
+                            <label class="form-check-label" for="majorAction7">Conference with Parent</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="majorActionTaken" value="Detention" id="majorAction8" class="form-check-input">
+                            <label class="form-check-label" for="majorAction8">Detention</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="majorActionTaken" value="Exclusion from Participation" id="majorAction9" class="form-check-input">
+                            <label class="form-check-label" for="majorAction9">Exclusion from Participation</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="majorActionTaken" value="Guidance Referral" id="majorAction10" class="form-check-input">
+                            <label class="form-check-label" for="majorAction10">Guidance Referral</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="majorActionTaken" value="Restorative Meeting" id="majorAction11">
+                            <label class="form-check-label" for="majorAction11">Restorative Meeting</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="majorActionTaken" value="Saturday Detention" id="majorAction12">
+                            <label class="form-check-label" for="majorAction12">Saturday Detention</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="majorActionTaken" value="Suspension" id="majorAction13">
+                            <label class="form-check-label" for="majorAction13">Suspension</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="majorActionTaken" value="Expulsion" id="majorAction14">
+                            <label class="form-check-label" for="majorAction14">Expulsion</label>
+                        </div>
+                        <div class="form-check">
+                            <input name="majorActionTaken" type="checkbox" id="majorActionOtherCheck" value="Other" class="form-check-input">
+                            <label class="form-check-label" for="majorActionOtherCheck">Other</label>
+                            <input type="text" class="form-control mt-2" id="majorActionOtherText" placeholder="Please specify." style="display: none;">
+                        </div>
+                    </div>
+                    <div class="invalid-feedback">
+                        Please select at least one previous action.
+                    </div>
+                </div>
+
+                <div class="col-12 mb-3">
+                    <label for="majorComments" class="form-label">Other Information or Comments:</label>
+                    <textarea class="form-control" id="majorComments" name="majorComments" rows="3"></textarea>
+                </div>
+            </div>
+
+            <div id="output" class="my-3 text-center"></div>
+
+            <div class="row">
+                <div class="col-12 text-center">
+                    <button class="btn btn-primary submit-btn" id="btnSubmit" type="submit">
+                        Submit
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+    <!-- Tom Select JS -->
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize Tom Select for the student name dropdown
+            new TomSelect("#studentName", {
+                create: false,
+                sortField: {
+                    field: "text",
+                    direction: "asc"
+                }
+            });
+
+            const referralForm = document.getElementById('referralForm');
+            const referralMinorRadio = document.getElementById('referralMinor');
+            const referralMajorRadio = document.getElementById('referralMajor');
+            const minorFormSection = document.getElementById('minorFormSection');
+            const majorFormSection = document.getElementById('majorFormSection');
+            const btnSubmit = document.getElementById('btnSubmit');
+            const outputDiv = document.getElementById('output');
+
+            // Handle "Other" text fields for Minor and Major sections
+            function setupOtherField(elementId, textFieldId) {
+                const element = document.getElementById(elementId);
+                const textField = document.getElementById(textFieldId);
+                if (!element || !textField) return;
+
+                const toggleVisibility = () => {
+                    const isCheckedOrSelectedOther = (element.tagName === 'SELECT') ? (element.value === 'Other') : element.checked;
+                    textField.style.display = isCheckedOrSelectedOther ? 'block' : 'none';
+                    textField.required = isCheckedOrSelectedOther; // Make required if "Other" is checked/selected
+                    if (!isCheckedOrSelectedOther) {
+                        textField.value = ''; // Clear text when unchecked/unselected
+                        textField.classList.remove('is-invalid'); // Remove validation state
+                    }
+                };
+
+                element.addEventListener('change', toggleVisibility);
+                toggleVisibility(); // Initialize state on load
+            }
+
+            setupOtherField('minorLocation', 'minorLocationOther'); // For minor form location
+            setupOtherField('minorInfractionOtherCheck', 'minorInfractionOtherText');
+            setupOtherField('minorActionOtherCheck', 'minorActionOtherText');
+
+            setupOtherField('majorLocation', 'majorLocationOther'); // For major form location
+            setupOtherField('majorInfractionOtherCheck', 'majorInfractionOtherText');
+            setupOtherField('majorActionOtherCheck', 'majorActionOtherText');
+
+            // Function to toggle form sections visibility and required attributes
+            function toggleFormSections() {
+                if (referralMinorRadio.checked) {
+                    minorFormSection.style.display = 'block';
+                    majorFormSection.style.display = 'none';
+                    setRequiredAttributes(minorFormSection, true);
+                    setRequiredAttributes(majorFormSection, false);
+                } else {
+                    minorFormSection.style.display = 'none';
+                    majorFormSection.style.display = 'block';
+                    setRequiredAttributes(minorFormSection, false);
+                    setRequiredAttributes(majorFormSection, true);
+                }
+            }
+
+            // Helper function to set/unset required attributes
+            function setRequiredAttributes(section, isRequired) {
+                const elements = section.querySelectorAll('input[name], select[name], textarea[name]');
+                elements.forEach(el => {
+                    // Store original required state if not already stored
+                    if (el.dataset.originalRequired === undefined) {
+                        el.dataset.originalRequired = el.hasAttribute('required').toString();
+                    }
+
+                    if (isRequired) {
+                        // Reapply original required if it was true
+                        if (el.dataset.originalRequired === 'true') {
+                            el.setAttribute('required', '');
+                        }
+                    } else {
+                        el.removeAttribute('required');
+                        // Also remove is-invalid class when hiding to clear validation state
+                        el.classList.remove('is-invalid');
+                        if (el.closest('.form-check-group')) {
+                             el.closest('.form-check-group').classList.remove('is-invalid');
+                        }
+                        if (el.tomselect) { // Handle Tom Select specifically
+                            el.tomselect.control.classList.remove('is-invalid');
+                            el.tomselect.wrapper.classList.remove('is-invalid'); // Also remove from wrapper
+                        }
+                    }
+
+                    // Clear values in the hidden section (except studentName, handled separately)
+                    if (!isRequired && el.name !== 'studentName') {
+                        if (el.type === 'text' || el.type === 'email' || el.type === 'date' || el.type === 'time' || el.type === 'textarea') {
+                            el.value = '';
+                        } else if (el.type === 'checkbox' || el.type === 'radio') {
+                            el.checked = false;
+                        } else if (el.tagName === 'SELECT') {
+                             if (el.tomselect) { // Handle Tom Select
+                                el.tomselect.clear();
+                                el.tomselect.refreshOptions();
+                             } else {
+                                el.value = '';
+                             }
+                        }
+                        el.classList.remove('is-invalid'); // Remove validation class
+                    }
+                });
+
+                // Special handling for checkbox/radio groups to ensure at least one is checked
+                section.querySelectorAll('.form-check-group').forEach(group => {
+                    const checkboxes = group.querySelectorAll('input[type="checkbox"][name], input[type="radio"][name]');
+                    if (checkboxes.length > 0) {
+                        const name = checkboxes[0].name;
+                        const boundValidator = validateCheckboxGroup.bind(null, group); // Bind group to validator
+                        // Remove existing listeners to prevent duplicates
+                        checkboxes.forEach(cb => cb.removeEventListener('change', cb._validatorListener));
+
+                        if (isRequired) {
+                            // Add custom validation for groups
+                            checkboxes.forEach(cb => {
+                                cb.addEventListener('change', boundValidator);
+                                cb._validatorListener = boundValidator; // Store reference to remove later
+                            });
+                            boundValidator(); // Validate initially
+                        } else {
+                            // Clear invalid state for the group
+                            group.classList.remove('is-invalid');
+                        }
+                    }
+                });
+
+                // Hide "other" text fields if their checkboxes are unchecked in the hidden section
+                section.querySelectorAll('input[type="checkbox"][id$="OtherCheck"]').forEach(checkbox => {
+                    const otherTextFieldId = checkbox.id.replace('Check', 'Text');
+                    const otherTextField = document.getElementById(otherTextFieldId);
+                    if (!isRequired && otherTextField) {
+                        checkbox.checked = false;
+                        otherTextField.style.display = 'none';
+                        otherTextField.required = false;
+                        otherTextField.value = '';
+                        otherTextField.classList.remove('is-invalid');
+                    }
+                });
+            }
+
+            // Custom validation for checkbox/radio groups
+            function validateCheckboxGroup(group) {
+                const checkboxes = group.querySelectorAll('input[type="checkbox"][name], input[type="radio"][name]');
+                const isAnyChecked = Array.from(checkboxes).some(input => input.checked);
+
+                if (isAnyChecked) {
+                    group.classList.remove('is-invalid');
+                } else {
+                    group.classList.add('is-invalid');
+                }
+            }
+
+
+            // Attach event listeners for referral type radio buttons
+            referralMinorRadio.addEventListener('change', toggleFormSections);
+            referralMajorRadio.addEventListener('change', toggleFormSections);
+
+            // Set initial form visibility and required attributes
+            toggleFormSections();
+
+            // Handle dateOfIncident for major and minor forms
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('minorDateOfIncident').value = today;
+            document.getElementById('majorDateOfIncident').value = today; // Use new name for major
+
+            referralForm.addEventListener('submit', function(event) {
+                event.preventDefault();
+                event.stopPropagation(); // Stop default form submission behavior
+
+                // Custom validation for Tom Select
+                const studentNameSelect = document.getElementById('studentName');
+                const studentTomSelect = studentNameSelect.tomselect;
+                if (!studentTomSelect.getValue()) {
+                    studentTomSelect.control.classList.add('is-invalid');
+                    studentTomSelect.wrapper.classList.add('is-invalid');
+                } else {
+                    studentTomSelect.control.classList.remove('is-invalid');
+                    studentTomSelect.wrapper.classList.remove('is-invalid');
+                }
+
+                // Validate all checkbox/radio groups in the currently active section
+                const activeSection = referralMinorRadio.checked ? minorFormSection : majorFormSection;
+                let allGroupsValid = true;
+                activeSection.querySelectorAll('.form-check-group').forEach(group => {
+                    // Re-run validation for each group to ensure all are checked
+                    const checkboxes = group.querySelectorAll('input[type="checkbox"][name], input[type="radio"][name]');
+                    if (checkboxes.length > 0) {
+                        const isAnyChecked = Array.from(checkboxes).some(input => input.checked);
+                        if (!isAnyChecked) {
+                            group.classList.add('is-invalid');
+                            allGroupsValid = false;
+                        } else {
+                            group.classList.remove('is-invalid');
+                        }
+                    }
+                });
+
+
+                if (!referralForm.checkValidity() || !allGroupsValid || !studentTomSelect.getValue()) {
+                    referralForm.classList.add('was-validated');
+                    outputDiv.innerHTML = '<div class="alert alert-danger">Please fill in all required fields.</div>';
+                    btnSubmit.disabled = false; // Re-enable button if validation fails
+                    return; // Do not submit if form is invalid
+                }
+
+                // If form is valid, proceed with submission
+                btnSubmit.disabled = true;
+                outputDiv.innerHTML = '<div class="alert alert-info">Submitting...</div>';
+
+                const data = {};
+                data.referralType = document.querySelector('input[name="referralType"]:checked').value;
+                data['studentName'] = studentTomSelect.getValue(); // Pure name from TomSelect
+
+                const activeElements = activeSection.querySelectorAll('input[name], select[name], textarea[name]');
+
+                // Initialize arrays for checkbox groups to prevent "push is not a function"
+                activeSection.querySelectorAll('input[type="checkbox"][name]').forEach(cb => {
+                    if (!data[cb.name]) {
+                        data[cb.name] = [];
+                    }
+                });
+
+                activeElements.forEach(element => {
+                    const key = element.name;
+                    const value = element.value;
+
+                    if (element.type === 'checkbox') {
+                        if (element.checked) {
+                            // If it's an "Other" checkbox, get text from its associated input
+                            if (element.id.endsWith('OtherCheck')) {
+                                const otherTextField = document.getElementById(element.id.replace('Check', 'Text'));
+                                if (otherTextField && otherTextField.value.trim() !== '') {
+                                    data[key].push(otherTextField.value.trim());
+                                }
+                            } else {
+                                data[key].push(value);
+                            }
+                        }
+                    } else if (element.type === 'radio') {
+                        if (element.checked) {
+                            data[key] = value;
+                        }
+                    } else if (element.tagName === 'SELECT') {
+                        if (value === 'Other') {
+                            const otherTextField = document.getElementById(`${element.id}Other`);
+                            if (otherTextField && otherTextField.value.trim() !== '') {
+                                data[key] = otherTextField.value.trim();
+                            } else {
+                                data[key] = ''; // Validation should catch if required
+                            }
+                        } else {
+                            data[key] = value;
+                        }
+                    } else { // text, email, date, time, textarea
+                        data[key] = value;
+                    }
+                });
+
+                console.log("Data to send:", data);
+
+                google.script.run
+                    .withSuccessHandler(onSuccess)
+                    .withFailureHandler(onFailure)
+                    .submitReport(JSON.stringify(data));
+            });
+
+            function onSuccess(message) {
+                outputDiv.innerHTML = `<div class="alert alert-success">${message}</div>`;
+                btnSubmit.disabled = false;
+                referralForm.reset(); // Reset the form after successful submission
+                referralForm.classList.remove('was-validated'); // Remove validation styling
+                toggleFormSections(); // Reset form visibility and required attributes
+                const studentNameSelect = document.getElementById('studentName');
+                const studentTomSelect = studentNameSelect.tomselect;
+                studentTomSelect.clear(); // Clear the Tom Select dropdown
+                studentTomSelect.blur(); // Remove focus
+            }
+
+            function onFailure(error) {
+                outputDiv.innerHTML = `<div class="alert alert-danger">Error: ${error.message || error}</div>`;
+                btnSubmit.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
