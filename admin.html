@@ -3,751 +3,803 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PBIS Office Referral - Admin</title>
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
-    <!-- Custom CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body {
-            padding-top: 20px;
-            padding-bottom: 50px;
-            font-family: 'Inter', sans-serif;
-            background-color: #f8f9fa;
-        }
-        .header {
-            background-color: #00008B; /* Dark Blue */
-            color: white;
-            padding: 15px 0;
-            margin-bottom: 20px;
-        }
-        .header img { /* This rule is now effectively unused for the main header banner */
-            max-width: 100%;
-            height: auto;
-            border-radius: 5px;
-        }
-        .banner {
-            background-color: #00008B; /* Dark Blue */
-            color: white;
-            font-family: serif;
-            font-weight: bold;
-            padding: 20px 30px 10px 30px;
-            /* Adjust margin for full width appearance */
-            margin: 0px -20px; /* Reset original margin and let container handle padding */
-            border-radius: 0; /* No rounded corners for the overall header */
-            text-align: center;
-        }
-        .banner h1 {
-            margin: 0; /* Remove default h1 margin */
-            font-size: 56pt; /* Changed to 56pt as requested */
-        }
-
-        .container {
-            background-color: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-        .req {
-            color: red;
-        }
-        .form-label {
-            font-weight: bold;
-            color: #333;
-        }
-        .card-panel { /* Reusing class for consistency, mapping to Bootstrap styling */
-            background-color: #e9ecef; /* Light grey for administrative section */
-            padding: 20px;
-            margin-top: 20px;
-            border-radius: 8px;
-            border: 1px solid #dee2e6;
-        }
-        textarea {
-            resize: vertical;
-        }
-        .submit-btn {
-            background-color: #0d6efd !important; /* Bootstrap blue */
-            border-radius: 8px;
-            padding: 10px 20px;
-            font-size: 1.1em;
-            transition: background-color 0.3s ease;
-        }
-        .submit-btn:hover {
-            background-color: #0b5ed7 !important;
-        }
-        .form-check-label {
-            font-weight: normal;
-        }
-        /* Validation styling for admin form */
-        .invalid-feedback {
-            display: none;
-            width: 100%;
-            margin-top: 0.25rem;
-            font-size: 0.875em;
-            color: #dc3545;
-        }
-        .is-invalid + .invalid-feedback {
-            display: block;
-        }
-        .form-check.is-invalid .form-check-label {
-            color: #dc3545;
-        }
-        .form-check.is-invalid + .invalid-feedback {
-            margin-top: -10px;
-            margin-left: 25px;
-        }
-        .radio-group-horizontal .form-check-inline {
-            margin-right: 1.5rem; /* Adjust spacing between horizontal radio buttons */
-        }
+        body { background-color: #f4f7f6; } 
+        .container { max-width: 900px; background-color: #ffffff; padding: 2.5rem; border-radius: 10px; box-shadow: 0 0 20px rgba(0,0,0,0.05); margin-top: 2rem; margin-bottom: 2rem; } 
+        .form-header h1 { color: #d9534f; } 
+        .btn-danger { background-color: #d9534f; border-color: #d9534f; } 
+        .staff-section { border: 1px solid #dee2e6; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem; } 
+        .admin-section { border: 2px solid #d9534f; background-color: #fcf8f7; padding: 1.5rem; border-radius: 8px; } 
+        .form-control[readonly], textarea[readonly] { background-color: #e9ecef; cursor: not-allowed; } 
+        #loader { display: flex; justify-content: center; align-items: center; height: 50vh; } 
+        #adminForm { display: none; } 
+        .checkbox-group .form-check { display: inline-block; width: 48%; } 
+        .radio-group .form-check { display: inline-block; margin-right: 1rem; } 
+        .other-text, .hidden-section { display: none; }
+        .validation-error { border-color: #dc3545 !important; box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25); }
+        .error-message { color: #dc3545; font-size: 0.875em; margin-top: 0.25rem; }
+        .progress-container { margin-bottom: 1rem; }
+        .autosave-status { position: fixed; top: 20px; right: 20px; z-index: 9999; padding: 0.5rem 1rem; font-size: 0.875rem; border-radius: 4px; }
+        .submission-summary { background-color: #e7f3ff; border: 1px solid #b3d7ff; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
+        .quick-actions { position: sticky; top: 20px; background: white; padding: 1rem; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 1rem; }
+        .field-highlight { background-color: #fff3cd; border-left: 4px solid #ffc107; padding-left: 0.75rem; }
+        .reward-trip-section { border: 1px solid #dee2e6; background-color: #f8f9fa; padding: 1.5rem; border-radius: 8px; margin-top: 1rem; }
+        .radio-button-group { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+        .radio-button-group .form-check { margin: 0; }
     </style>
 </head>
 <body>
-    <header class="header text-white text-center py-3">
-        <div class="container-fluid">
-            <div class="row">
-                <div class="col-12">
-                    <div class="banner">
-                        <h1>OFMS Referral Form</h1>
-                    </div>
-                </div>
+    <div class="container">
+        <div id="loader" class="text-center">
+            <div class="spinner-border text-danger" style="width: 3rem; height: 3rem;" role="status"></div>
+            <p class="mt-2">Loading Referral Data...</p>
+            <div class="progress mt-3 progress-container" style="height: 6px;">
+                <div class="progress-bar bg-danger" id="loadProgress" role="progressbar" style="width: 0%"></div>
             </div>
         </div>
-    </header>
 
-    <div class="container my-4">
-        <form id="adminForm" class="needs-validation" novalidate>
-            <p class="text-center"><span class="req">*</span> Indicates a required field.</p>
+        <form id="adminForm">
+            <input type="hidden" id="submissionNumber" name="submissionNumber">
+            <input type="hidden" id="sheetName" name="sheetName">
+            
+            <div class="form-header text-center mb-4">
+                <h1>Administrator Referral Review</h1>
+                <p class="lead">Review staff submission and complete administrative fields.</p>
+            </div>
 
-            <!-- Display Submitted Data (Read-Only) -->
-            <div class="row mb-3">
-                <div class="col-md-6 mb-3">
-                    <label for="subNum" class="form-label">Submission ID</label>
-                    <input type="text" class="form-control" id="subNum" name="subNum" value="<?= info[0] ?>" readonly>
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label for="timeStamp" class="form-label">Date of Report Submission</label>
-                    <input type="text" class="form-control" id="timeStamp" name="timeStamp" value="<?= info[1] ?>" readonly>
-                </div>
-                <!-- Referral Type moved to here -->
-                <div class="col-md-6 mb-3">
-                    <!-- Hidden field to pass referral type for sheet selection in Code.gs -->
-                    <input type="hidden" id="referralTypeDisplay" name="referralTypeDisplay" value="<?= info[26] ?>">
-                    <label for="referralTypeDisplayReadOnly" class="form-label">Referral Type</label>
-                    <input type="text" class="form-control" id="referralTypeDisplayReadOnly" value="<?= info[26] ?>" readonly>
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label for="statusDisplay" class="form-label">Status</label>
-                    <input type="text" class="form-control" id="statusDisplay" name="statusDisplay" value="<?= info[2] ?>" readonly>
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label for="studentName" class="form-label">Student Name</label>
-                    <input type="text" class="form-control" id="studentName" name="studentName" value="<?= info[3] ?>" readonly>
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label for="studentId" class="form-label">Student ID</label>
-                    <input type="text" class="form-control" id="studentId" name="studentId" value="<?= info[4] ?>" readonly>
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label for="staffName" class="form-label">Referring Staff Name</label>
-                    <input type="text" class="form-control" id="staffName" name="staffName" value="<?= info[5] ?>" readonly>
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label for="staffEmail" class="form-label">Referring Staff Email</label>
-                    <input type="email" class="form-control" id="staffEmail" name="staffEmail" value="<?= info[6] ?>" readonly>
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label for="dateOfIncident" class="form-label">Date of Incident</label>
-                    <input type="text" class="form-control" id="dateOfIncident" name="dateOfIncident" value="<?= info[7] ?>" readonly>
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label for="timeOfIncident" class="form-label">Time of Incident</label>
-                    <input type="text" class="form-control" id="timeOfIncident" name="timeOfIncident" value="<?= info[8] ?>" readonly>
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label for="grade" class="form-label">Grade Level</label>
-                    <input type="text" class="form-control" id="grade" name="grade" value="<?= info[9] ?>" readonly>
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label for="team" class="form-label">Team</label>
-                    <input type="text" class="form-control" id="team" name="team" value="<?= info[10] ?>" readonly>
-                </div>
-                <div class="col-12 mb-3">
-                    <label for="location" class="form-label">Location</label>
-                    <input type="text" class="form-control" id="location" name="location" value="<?= info[11] ?>" readonly>
-                </div>
-                <div class="col-12 mb-3">
-                    <label for="phone" class="form-label">Phone communication with parent/guardian?</label>
-                    <input type="text" class="form-control" id="phone" name="phone" value="<?= info[12] ?>" readonly>
-                </div>
-
-                <div class="col-12 mb-3">
-                    <label for="communicate" class="form-label">Details of Communication</label>
-                    <textarea class="form-control" id="communicate" name="communicate" rows="3" readonly><?= info[13] ?></textarea>
-                </div>
-
-                <div class="col-12 mb-3">
-                    <label for="major" class="form-label">Infraction(s)</label>
-                    <input type="text" class="form-control" id="major" name="major" value="<?= info[14] ?>" readonly>
-                </div>
-
-                <div class="col-12 mb-3">
-                    <label for="description" class="form-label">Description of Infraction(s)</label>
-                    <textarea class="form-control" id="description" name="description" rows="3" readonly><?= info[15] ?></textarea>
-                </div>
-
-                <div class="col-12 mb-3">
-                    <label for="perceivedMotivation" class="form-label">Perceived Motivation</label>
-                    <input type="text" class="form-control" id="perceivedMotivation" name="perceivedMotivation" value="<?= info[17] ?>" readonly>
-                </div>
-
-                <div class="col-md-6 mb-3">
-                    <label for="dayOfWeek" class="form-label">Day of Week</label>
-                    <input type="text" class="form-control" id="dayOfWeek" name="dayOfWeek" value="<?= info[18] ?>" readonly>
-                </div>
-
-                <div class="col-12 mb-3">
-                    <label for="action" class="form-label">Previous Action(s) Taken</label>
-                    <input type="text" class="form-control" id="action" name="action" value="<?= info[16] ?>" readonly>
-                </div>
-                <div class="col-12 mb-3">
-                    <label for="comments" class="form-label">Other Information or Comments:</label>
-                    <textarea class="form-control" id="comments" name="comments" rows="3" readonly><?= info[19] ?></textarea>
-                </div>
-
-                <div class="col-md-6 mb-3">
-                    <label for="pbisRewardDisplay" class="form-label">PBIS Reward</label>
-                    <input type="text" class="form-control" id="pbisRewardDisplay" name="pbisRewardDisplay" value="<?= info[24] ?>" readonly>
-                </div>
-
-                <div class="col-md-6 mb-3">
-                    <label for="washingtonDCDisplay" class="form-label">Washington DC</label>
-                    <input type="text" class="form-control" id="washingtonDCDisplay" name="washingtonDCDisplay" value="<?= info[25] ?>" readonly>
+            <!-- Quick Actions Panel -->
+            <div class="quick-actions">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <div class="submission-summary">
+                            <strong>Submission ID:</strong> <span id="quickSubmissionId">Loading...</span> |
+                            <strong>Student:</strong> <span id="quickStudentName">Loading...</span> |
+                            <strong>Type:</strong> <span id="quickReferralType">Loading...</span>
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" id="printBtn">Print</button>
+                        <button type="button" class="btn btn-outline-info btn-sm" id="shareBtn">Share PDF</button>
+                    </div>
                 </div>
             </div>
 
-            <!-- Administrator feedback Section -->
-            <div class="card-panel shadow-sm">
-                <div class="row">
+            <div class="staff-section">
+                <h4>Staff Submission Details</h4>
+                <div class="row g-3 mt-2">
+                    <div class="col-md-4">
+                        <label class="form-label">Submission ID</label>
+                        <input type="text" class="form-control" id="SubmissionNumber" readonly>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Date of Report Submission</label>
+                        <input type="text" class="form-control" id="Timestamp" readonly>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Referral Type</label>
+                        <input type="text" class="form-control" id="ReferralType" readonly>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Status</label>
+                        <input type="text" class="form-control" id="Status" readonly>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Student Name</label>
+                        <input type="text" class="form-control field-highlight" id="StudentName" readonly>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Student ID</label>
+                        <input type="text" class="form-control" id="StudentID" readonly>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Referring Staff Name</label>
+                        <input type="text" class="form-control" id="StaffName" readonly>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Referring Staff Email</label>
+                        <input type="text" class="form-control" id="StaffEmail" readonly>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Date of Incident</label>
+                        <input type="text" class="form-control field-highlight" id="DateOfIncident" readonly>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Time of Incident</label>
+                        <input type="text" class="form-control" id="TimeOfIncident" readonly>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Day of Week</label>
+                        <input type="text" class="form-control" id="DayOfWeek" readonly>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Grade Level</label>
+                        <input type="text" class="form-control" id="GradeLevel" readonly>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Team</label>
+                        <input type="text" class="form-control" id="Team" readonly>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Location</label>
+                        <input type="text" class="form-control field-highlight" id="Location" readonly>
+                    </div>
                     <div class="col-12">
-                        <h5 class="text-primary mb-3">Administrative Section</h5>
+                        <label class="form-label">Infraction(s)</label>
+                        <textarea class="form-control field-highlight" id="Infraction" rows="2" readonly></textarea>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Description of Infraction(s)</label>
+                        <textarea class="form-control field-highlight" id="DescriptionOfInfraction" rows="3" readonly></textarea>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Previous Action(s) Taken</label>
+                        <textarea class="form-control" id="ActionsTaken" rows="3" readonly></textarea>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Perceived Motivation</label>
+                        <textarea class="form-control" id="PerceivedMotivation" rows="2" readonly></textarea>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Phone communication with parent/guardian?</label>
+                        <input type="text" class="form-control" id="HomeCommunications" readonly>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Details of Communication</label>
+                        <textarea class="form-control" id="DetailsOfCommunication" rows="1" readonly></textarea>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Other Information or Comments:</label>
+                        <textarea class="form-control" id="Comments" rows="2" readonly></textarea>
                     </div>
                 </div>
-
-                <!-- Conditional Code of Conduct and CRDC Reporting -->
-                <div id="conditionalAdminSection">
-                    <div class="col-12 mb-3">
-                        <label class="form-label">Code of Conduct <span class="req">*</span></label>
-                        <div class="form-check-group">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="codeConduct" value="1. Disruption of School" id="codeConduct1">
-                                <label class="form-check-label" for="codeConduct1">1. Disruption of School</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="codeConduct" value="2. Damage of Property" id="codeConduct2">
-                                <label class="form-check-label" for="codeConduct2">2. Damage of Property</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="codeConduct" value="3. PA/Harassment/Threat" id="codeConduct3">
-                                <label class="form-check-label" for="codeConduct3">3. PA/Harassment/Threat</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="codeConduct" value="4. Weapons/Dangerous Instruments" id="codeConduct4">
-                                <label class="form-check-label" for="codeConduct4">4. Weapons/Dangerous Instruments</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="codeConduct" value="5. Illegal Substances" id="codeConduct5">
-                                <label class="form-check-label" for="codeConduct5">5. Illegal Substances</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="codeConduct" value="6. Insubordination/Inappropriate Behaviors" id="codeConduct6">
-                                <label class="form-check-label" for="codeConduct6">6. Insubordination/Inappropriate Behaviors</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="codeConduct" value="7. Profanity" id="codeConduct7">
-                                <label class="form-check-label" for="codeConduct7">7. Profanity</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="codeConduct" value="8. Truancy/Tardy/Unexecused Absence" id="codeConduct8">
-                                <label class="form-check-label" for="codeConduct8">8. Truancy/Tardy/Unexecused Absence</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="codeConduct" value="9. Theft" id="codeConduct9">
-                                <label class="form-check-label" for="codeConduct9">9. Theft</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="codeConduct" value="10. Tobacco" id="codeConduct10">
-                                <label class="form-check-label" for="codeConduct10">10. Tobacco</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="codeConduct" value="11. Falsification" id="codeConduct11">
-                                <label class="form-check-label" for="codeConduct11">11. Falsification</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="codeConduct" value="12. Cafeteria" id="codeConduct12">
-                                <label class="form-check-label" for="codeConduct12">12. Cafeteria</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="codeConduct" value="13. Hazing" id="codeConduct13">
-                                <label class="form-check-label" for="codeConduct13">13. Hazing</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="codeConduct" value="14. Repeated Acts of Misconduct" id="codeConduct14">
-                                <label class="form-check-label" for="codeConduct14">14. Repeated Acts of Misconduct</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="codeConduct" value="15. Bus Conduct" id="codeConduct15">
-                                <label class="form-check-label" for="codeConduct15">15. Bus Conduct</label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="codeConductOtherCheck" value="Other" class="form-check-input">
-                                <label class="form-check-label" for="codeConductOtherCheck">Other</label>
-                                <input type="text" id="codeConductOtherText" placeholder="Please specify." class="form-control mt-2" style="display: none;">
-                            </div>
-                        </div>
-                        <div class="invalid-feedback">
-                            Please select at least one Code of Conduct.
-                        </div>
-                    </div>
-
-                    <div class="col-12 mb-3">
-                        <label class="form-label">Ohio State Reporting Codes <span class="req">*</span></label>
-                        <div class="form-check-group">
-                            <div class="form-check">
-                                <input type="checkbox" name="CRDCcode" value="Not Applicable" id="CRDCcode1" class="form-check-input">
-                                <label class="form-check-label" for="CRDCcode1">Not Applicable</label>
-                            </div>
-                            <div class="form-check">
-                                <input type="checkbox" name="CRDCcode" value="Expelled with Educational Services" id="CRDCcode2" class="form-check-input">
-                                <label class="form-check-label" for="CRDCcode2">Expelled with Educational Services</label>
-                            </div>
-                            <div class="form-check">
-                                <input type="checkbox" name="CRDCcode" value="Expelled under Zero Tolerance Policy" id="CRDCcode3" class="form-check-input">
-                                <label class="form-check-label" for="CRDCcode3">Expelled under Zero Tolerance Policy</label>
-                            </div>
-                            <div class="form-check">
-                                <input type="checkbox" name="CRDCcode" value="Referral to Law Enforcement" id="CRDCcode4" class="form-check-input">
-                                <label class="form-check-label" for="CRDCcode4">Referral to Law Enforcement</label>
-                            </div>
-                            <div class="form-check">
-                                <input type="checkbox" name="CRDCcode" value="School Related Arrest" id="CRDCcode5" class="form-check-input">
-                                <label class="form-check-label" for="CRDCcode5">School Related Arrest</label>
-                            </div>
-                            <div class="form-check">
-                                <input type="checkbox" name="CRDCcode" value="Sexual Harassment" id="CRDCcode6" class="form-check-input">
-                                <label class="form-check-label" for="CRDCcode6">Sexual Harassment</label>
-                            </div>
-                            <div class="form-check">
-                                <input type="checkbox" name="CRDCcode" value="Harassment based upon Discrimination" id="CRDCcode7" class="form-check-input">
-                                <label class="form-check-label" for="CRDCcode7">Harassment based upon Discrimination</label>
-                            </div>
-                            <div class="form-check">
-                                <input type="checkbox" name="CRDCcode" value="Harassment based upon Disability" id="CRDCcode8" class="form-check-input">
-                                <label class="form-check-label" for="CRDCcode8">Harassment based upon Disability</label>
-                            </div>
-                            <div class="form-check">
-                                <input type="checkbox" name="CRDCcode" value="Used Mechanical Restraints" id="CRDCcode9" class="form-check-input">
-                                <label class="form-check-label" for="CRDCcode9">Used Mechanical Restraints</label>
-                            </div>
-                            <div class="form-check">
-                                <input type="checkbox" name="CRDCcode" value="Used Physical Restraints" id="CRDCcode10" class="form-check-input">
-                                <label class="form-check-label" for="CRDCcode10">Used Physical Restraints</label>
-                            </div>
-                            <div class="form-check">
-                                <input type="checkbox" name="CRDCcode" value="Used Seclusion" id="CRDCcode11" class="form-check-input">
-                                <label class="form-check-label" for="CRDCcode11">Used Seclusion</label>
-                            </div>
-                        </div>
-                        <div class="invalid-feedback">
-                            Please select at least one Ohio State Reporting Code.
-                        </div>
-                    </div>
-
-                    <div class="col-12 mb-3">
-                        <label class="form-label">Administrative Consequences <span class="req">*</span></label>
-                        <div class="form-check-group">
-                            <div class="form-check">
-                                <input type="checkbox" name="adminConsequence" value="Conference with Student" id="adminConsequence1" class="form-check-input">
-                                <label class="form-check-label" for="adminConsequence1">Conference with Student</label>
-                            </div>
-                            <div class="form-check">
-                                <input type="checkbox" name="adminConsequence" value="Conference with Parent" id="adminConsequence2" class="form-check-input">
-                                <label class="form-check-label" for="adminConsequence2">Conference with Parent</label>
-                            </div>
-                            <div class="form-check">
-                                <input type="checkbox" name="adminConsequence" value="Detention Before/After School" id="adminConsequence3" class="form-check-input">
-                                <label class="form-check-label" for="adminConsequence3">Detention Before/After School</label>
-                            </div>
-                            <div class="form-check">
-                                <input type="checkbox" name="adminConsequence" value="Exclusion from Participation" id="adminConsequence4" class="form-check-input">
-                                <label class="form-check-label" for="adminConsequence4">Exclusion from Participation</label>
-                            </div>
-                            <div class="form-check">
-                                <input type="checkbox" name="adminConsequence" value="Educational Assignment" id="adminConsequence5" class="form-check-input">
-                                <label class="form-check-label" for="adminConsequence5">Educational Assignment</label>
-                            </div>
-                            <div class="form-check">
-                                <input type="checkbox" name="adminConsequence" value="Referral to Guidance" id="adminConsequence6" class="form-check-input">
-                                <label class="form-check-label" for="adminConsequence6">Referral to Guidance</label>
-                            </div>
-                            <div class="form-check">
-                                <input type="checkbox" name="adminConsequence" value="Referral to Mediation" id="adminConsequence7" class="form-check-input">
-                                <label class="form-check-label" for="adminConsequence7">Referral to Mediation</label>
-                            </div>
-                            <div class="form-check">
-                                <input type="checkbox" name="adminConsequence" value="Reimbursement for Damage" id="adminConsequence8" class="form-check-input">
-                                <label class="form-check-label" for="adminConsequence8">Reimbursement for Damage</label>
-                            </div>
-                            <div class="form-check">
-                                <input type="checkbox" name="adminConsequence" value="Saturday School" id="adminConsequence9" class="form-check-input">
-                                <label class="form-check-label" for="adminConsequence9">Saturday Detention</label>
-                            </div>
-                            <div class="form-check">
-                                <input type="checkbox" name="adminConsequence" value="Suspension" id="adminConsequence10" class="form-check-input">
-                                <label class="form-check-label" for="adminConsequence10">Suspension</label>
-                            </div>
-                            <div class="form-check">
-                                <input name="adminConsequence" type="checkbox" id="adminConsequenceOtherCheck" value="Other" class="form-check-input">
-                                <label class="form-check-label" for="adminConsequenceOtherCheck">Other</label>
-                                <input type="text" id="adminConsequenceOtherText" placeholder="Please specify." class="form-control mt-2" style="display: none;">
-                            </div>
-                        </div>
-                        <div class="invalid-feedback">
-                            Please select at least one Administrative Consequence.
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-12 mb-3">
-                    <label for="adminComments" class="form-label">Administrator Comments:</label>
-                    <textarea class="form-control" id="adminComments" name="adminComments" rows="3"></textarea>
-                </div>
-
-                <!-- PBIS Reward Section - Conditional based on Grade Level -->
-                <div id="pbisRewardSection" class="mt-4">
-                    <!-- Content will be dynamically inserted here -->
-                </div>
-
             </div>
 
-            <div id="output" class="my-3 text-center"></div>
-
-            <div class="row">
-                <div class="col-12 text-center">
-                    <button class="btn btn-primary submit-btn" id="btnSubmitAdmin" type="submit">
-                        Submit
-                    </button>
+            <div class="admin-section">
+                <h4>Administrative Action</h4>
+                <div class="row g-3 mt-2">
+                    <div id="majorAdminActions" class="hidden-section"></div>
+                    
+                    <div class="col-12">
+                        <label for="adminComments" class="form-label">Administrator Comments</label>
+                        <textarea class="form-control" id="adminComments" name="AdminComments" rows="4" maxlength="2000" placeholder="Document administrative decisions, parent contact, and follow-up actions..."></textarea>
+                        <div class="form-text">Characters remaining: <span id="adminCommentsCounter">2000</span></div>
+                        <div class="error-message" id="adminComments-error"></div>
+                    </div>
+                    
+                    <!-- FIXED: Reward Trip Sections - Now shows for ALL referrals based on grade -->
+                    <div id="rewardTripSection" class="col-12 mt-3"></div>
+                    
+                    <!-- Parent Contact Tracking -->
+                    <div class="col-12 mt-3">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">Parent Contact Tracking</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label for="parentContactDate" class="form-label">Contact Date</label>
+                                        <input type="date" class="form-control" id="parentContactDate" name="ParentContactDate">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="parentContactMethod" class="form-label">Contact Method</label>
+                                        <select class="form-select" id="parentContactMethod" name="ParentContactMethod">
+                                            <option value="">Select method...</option>
+                                            <option value="Phone Call">Phone Call</option>
+                                            <option value="Email">Email</option>
+                                            <option value="In-Person Meeting">In-Person Meeting</option>
+                                            <option value="Letter Sent Home">Letter Sent Home</option>
+                                            <option value="Other">Other</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-12">
+                                        <label for="parentContactNotes" class="form-label">Contact Notes</label>
+                                        <textarea class="form-control" id="parentContactNotes" name="ParentContactNotes" rows="3" maxlength="1000" placeholder="Document conversation details, parent response, follow-up needed..."></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
+
+            <div class="d-grid gap-2 mt-4">
+                <button type="submit" class="btn btn-danger btn-lg" id="submitBtn">Update and Close Referral</button>
+                <button type="button" class="btn btn-secondary" id="saveDraftBtn">Save Progress</button>
+            </div>
+            
+            <div id="output" class="mt-3"></div>
         </form>
     </div>
 
-    <!-- Bootstrap Bundle with Popper -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+    <div class="autosave-status" id="autosaveStatus" style="display: none;"></div>
+
+    <!-- Print Template (Hidden) -->
+    <div id="printTemplate" style="display: none;">
+        <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px;">
+            <h1 style="text-align: center; color: #d9534f;">Discipline Referral Report</h1>
+            <div id="printContent"></div>
+        </div>
+    </div>
+
     <script>
+        const SUBMISSION_ID = '<?!= submissionId ?>';
+        let formData = {};
+        let autoSaveTimer;
+        const AUTOSAVE_DELAY = 30000; // 30 seconds
+        
         document.addEventListener('DOMContentLoaded', function() {
-            const adminForm = document.getElementById('adminForm');
-            const btnSubmitAdmin = document.getElementById('btnSubmitAdmin');
-            const outputDiv = document.getElementById('output');
-            const gradeLevel = "<?= info[9] ?>"; // Get grade level passed from Code.gs
-            const referralType = "<?= info[26] ?>"; // Get referral type passed from Code.gs
-            const conditionalAdminSection = document.getElementById('conditionalAdminSection');
-            const pbisRewardSection = document.getElementById('pbisRewardSection');
+            initializeAdminForm();
+            loadSubmissionData();
+            setupEventListeners();
+        });
 
-            // Function to handle "Other" text fields
-            function setupOtherField(checkboxId, textFieldId) {
-                const checkbox = document.getElementById(checkboxId);
-                const textField = document.getElementById(textFieldId);
-                if (checkbox && textField) {
-                    checkbox.addEventListener('change', function() {
-                        textField.style.display = this.checked ? 'block' : 'none';
-                        textField.required = this.checked;
-                        if (!this.checked) {
-                            textField.value = '';
-                            textField.classList.remove('is-invalid');
-                        }
-                    });
-                    textField.style.display = checkbox.checked ? 'block' : 'none';
-                    textField.required = checkbox.checked;
-                }
-            }
+        function initializeAdminForm() {
+            document.getElementById('parentContactDate').valueAsDate = new Date();
+            setupCharacterCounters();
+            setupAutoSave();
+        }
 
-            setupOtherField('codeConductOtherCheck', 'codeConductOtherText');
-            setupOtherField('adminConsequenceOtherCheck', 'adminConsequenceOtherText');
+        function loadSubmissionData() {
+            updateLoadProgress(20, 'Retrieving submission data...');
+            
+            google.script.run
+                .withSuccessHandler(handleDataLoaded)
+                .withFailureHandler(showError)
+                .getSubmissionDataOptimized(SUBMISSION_ID);
+        }
 
-            // Custom validation for checkbox/radio groups
-            function validateCheckboxGroup(group) {
-                const checkboxes = group.querySelectorAll('input[type="checkbox"][name], input[type="radio"][name]');
-                const isAnyChecked = Array.from(checkboxes).some(input => input.checked);
+        function updateLoadProgress(percent, message) {
+            document.getElementById('loadProgress').style.width = percent + '%';
+            const loadingText = document.querySelector('#loader p');
+            if (loadingText) loadingText.textContent = message;
+        }
 
-                if (isAnyChecked) {
-                    group.classList.remove('is-invalid');
-                } else {
-                    group.classList.add('is-invalid');
-                }
-            }
+        function handleDataLoaded(responseString) {
+            updateLoadProgress(60, 'Processing form data...');
+            
+            setTimeout(() => {
+                populateForm(responseString);
+                updateLoadProgress(100, 'Complete!');
+                
+                setTimeout(() => {
+                    document.getElementById('loader').style.display = 'none';
+                    document.getElementById('adminForm').style.display = 'block';
+                }, 500);
+            }, 1000);
+        }
 
-            // Attach validation listener to all checkbox/radio groups
-            adminForm.querySelectorAll('.form-check-group').forEach(group => {
-                const checkboxes = group.querySelectorAll('input[type="checkbox"][name], input[type="radio"][name]');
-                if (checkboxes.length > 0) {
-                    const boundValidator = validateCheckboxGroup.bind(null, group);
-                    checkboxes.forEach(cb => {
-                        cb.addEventListener('change', boundValidator);
-                        cb._validatorListener = boundValidator; // Store reference to remove later
-                    });
-                    boundValidator(); // Initial validation check
-                }
-            });
-
-            // Function to convert 24-hour time to 12-hour format with AM/PM
-            function formatTime12Hour(time24) {
-                if (!time24) return '';
-                const [hours, minutes] = time24.split(':');
-                let h = parseInt(hours, 10);
-                const ampm = h >= 12 ? 'PM' : 'AM';
-                h = h % 12;
-                h = h ? h : 12; // the hour '0' should be '12'
-                const m = minutes < 10 ? '0' + minutes : minutes;
-                return `${h}:${m} ${ampm}`;
-            }
-
-            // Apply 12-hour format to Time of Incident on load
-            const timeOfIncidentInput = document.getElementById('timeOfIncident');
-            if (timeOfIncidentInput && timeOfIncidentInput.value) {
-                timeOfIncidentInput.value = formatTime12Hour(timeOfIncidentInput.value);
-            }
-
-            // Conditional display for admin sections based on Referral Type
-            if (referralType === 'Minor') {
-                conditionalAdminSection.style.display = 'none';
-                conditionalAdminSection.querySelectorAll('[required]').forEach(el => {
-                    el.removeAttribute('required');
-                    el.classList.remove('is-invalid'); // Clear validation for hidden elements
-                });
-            } else {
-                conditionalAdminSection.style.display = 'block';
-                // Re-apply original required attribute if it was true.
-                // This assumes elements within this section had required by default or from previous JS control.
-                conditionalAdminSection.querySelectorAll('[data-original-required="true"]').forEach(el => {
-                    el.setAttribute('required', '');
-                });
-            }
-
-            // Dynamically add PBIS Reward questions based on Grade Level
-            function addPbisRewardQuestions(grade) {
-                let pbisHtml = '';
-                if (grade === '6') {
-                    pbisHtml = `
-                        <div class="col-12 mb-3">
-                            <label class="form-label">PBIS Reward: Swings & Things <span class="req">*</span></label>
-                            <div class="form-check-group radio-group-horizontal">
-                                ${Array.from({length: 11}, (_, i) => i).map(num => `
-                                    <div class="form-check form-check-inline">
-                                        <input class="form-check-input" type="radio" name="pbisReward" id="pbisReward${num}" value="${num}" required>
-                                        <label class="form-check-label" for="pbisReward${num}">${num}</label>
-                                    </div>
-                                `).join('')}
-                            </div>
-                            <div class="invalid-feedback">
-                                Please select a PBIS reward value.
-                            </div>
-                        </div>
-                    `;
-                } else if (grade === '7') {
-                    pbisHtml = `
-                        <div class="col-12 mb-3">
-                            <label class="form-label">PBIS Reward: Bowling <span class="req">*</span></label>
-                            <div class="form-check-group radio-group-horizontal">
-                                ${Array.from({length: 11}, (_, i) => i).map(num => `
-                                    <div class="form-check form-check-inline">
-                                        <input class="form-check-input" type="radio" name="pbisReward" id="pbisReward${num}" value="${num}" required>
-                                        <label class="form-check-label" for="pbisReward${num}">${num}</label>
-                                    </div>
-                                `).join('')}
-                            </div>
-                            <div class="invalid-feedback">
-                                Please select a PBIS reward value.
-                            </div>
-                        </div>
-                    `;
-                } else if (grade === '8') {
-                    pbisHtml = `
-                        <div class="col-12 mb-3">
-                            <label class="form-label">PBIS Reward: Cedar Point <span class="req">*</span></label>
-                            <div class="form-check-group radio-group-horizontal">
-                                ${Array.from({length: 11}, (_, i) => i).map(num => `
-                                    <div class="form-check form-check-inline">
-                                        <input class="form-check-input" type="radio" name="pbisReward" id="pbisRewardCP${num}" value="${num}" required>
-                                        <label class="form-check-label" for="pbisRewardCP${num}">${num}</label>
-                                    </div>
-                                `).join('')}
-                            </div>
-                            <div class="invalid-feedback">
-                                Please select a PBIS reward value.
-                            </div>
-                        </div>
-                        <div class="col-12 mb-3">
-                            <label class="form-label">Washington DC <span class="req">*</span></label>
-                            <div class="form-check-group radio-group-horizontal">
-                                ${Array.from({length: 11}, (_, i) => i).map(num => `
-                                    <div class="form-check form-check-inline">
-                                        <input class="form-check-input" type="radio" name="washingtonDC" id="washingtonDC${num}" value="${num}" required>
-                                        <label class="form-check-label" for="washingtonDC${num}">${num}</label>
-                                    </div>
-                                `).join('')}
-                            </div>
-                            <div class="invalid-feedback">
-                                Please select a Washington DC value.
-                            </div>
-                        </div>
-                    `;
-                }
-                pbisRewardSection.innerHTML = pbisHtml;
-
-                // Re-attach validation listeners to newly added radio groups
-                pbisRewardSection.querySelectorAll('.form-check-group').forEach(group => {
-                    const radios = group.querySelectorAll('input[type="radio"][name]');
-                    if (radios.length > 0) {
-                        const boundValidator = validateCheckboxGroup.bind(null, group);
-                        radios.forEach(radio => {
-                            radio.addEventListener('change', boundValidator);
-                            radio._validatorListener = boundValidator;
-                        });
-                        boundValidator(); // Initial validation check
-                    }
-                });
-            }
-
-            if (gradeLevel) {
-                addPbisRewardQuestions(gradeLevel);
-            }
-
-            adminForm.addEventListener('submit', function(event) {
-                event.preventDefault();
-                event.stopPropagation();
-
-                let allGroupsValid = true;
-                adminForm.querySelectorAll('.form-check-group').forEach(group => {
-                    // Re-run validation for each group, especially for dynamically added ones
-                    const elements = group.querySelectorAll('input[type="checkbox"][name], input[type="radio"][name]');
-                    if (elements.length > 0) {
-                        const isAnyChecked = Array.from(elements).some(input => input.checked);
-                        if (!isAnyChecked) {
-                            group.classList.add('is-invalid');
-                            allGroupsValid = false;
-                        } else {
-                            group.classList.remove('is-invalid');
-                        }
-                    }
-                });
-
-                if (!adminForm.checkValidity() || !allGroupsValid) {
-                    adminForm.classList.add('was-validated');
-                    outputDiv.innerHTML = '<div class="alert alert-danger">Please fill in all required fields.</div>';
-                    btnSubmitAdmin.disabled = false;
+        function populateForm(responseString) {
+            try {
+                const response = JSON.parse(responseString);
+                if (response.error) {
+                    showError({ message: response.error });
                     return;
                 }
 
-                btnSubmitAdmin.disabled = true;
-                outputDiv.innerHTML = '<div class="alert alert-info">Submitting...</div>';
+                // FIXED: Use dynamic headers from server response
+                const headers = response.headers;
+                const data = response.data;
+                const record = {};
+                
+                headers.forEach((header, i) => { 
+                    record[header] = data[i] || ''; 
+                });
 
-                const data = {};
-
-                // Get referral type from hidden field
-                data.referralTypeDisplay = document.getElementById('referralTypeDisplay').value;
-
-                // Collect data from dynamically added PBIS/DC fields
-                const pbisRewardRadio = adminForm.querySelector('input[name="pbisReward"]:checked');
-                if (pbisRewardRadio) {
-                    data.pbisReward = pbisRewardRadio.value;
-                }
-
-                const washingtonDCRadio = adminForm.querySelector('input[name="washingtonDC"]:checked');
-                if (washingtonDCRadio) {
-                    data.washingtonDC = washingtonDCRadio.value;
-                }
-
-
-                // Collect other form data, focusing on active elements
-                const activeElements = adminForm.querySelectorAll('input[name]:not([type="radio"]), select[name], textarea[name], input[type="radio"]:checked');
-
-                activeElements.forEach(element => {
-                    const key = element.name;
-                    // Skip if it's one of the PBIS/DC radios already processed
-                    if (key === 'pbisReward' || key === 'washingtonDC' || key === 'referralTypeDisplay') {
-                        return;
-                    }
-
-                    if (element.type === 'checkbox') {
-                        if (!data[key]) {
-                            data[key] = [];
-                        }
-                        if (element.checked) {
-                            if (element.id.endsWith('OtherCheck')) {
-                                const otherTextField = document.getElementById(element.id.replace('Check', 'Text'));
-                                if (otherTextField && otherTextField.value.trim() !== '') {
-                                    data[key].push(otherTextField.value.trim());
+                // FIXED: Populate all readonly fields using dynamic mapping
+                headers.forEach(header => {
+                    const el = document.getElementById(header);
+                    if (el) {
+                        if (header === 'Timestamp') {
+                            el.value = new Date(record[header]).toLocaleString();
+                        } else if (header === 'DateOfIncident') {
+                            el.value = new Date(record[header]).toLocaleDateString();
+                        } else if (header === 'TimeOfIncident') {
+                            // FIXED: Time of Incident field population
+                            if (record[header]) {
+                                if (record[header] instanceof Date) {
+                                    el.value = record[header].toLocaleTimeString('en-US', { 
+                                        hour12: false,
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                    });
+                                } else if (typeof record[header] === 'string' && record[header].trim()) {
+                                    // Handle string time values
+                                    el.value = record[header];
                                 }
-                            } else {
-                                data[key].push(element.value);
                             }
+                        } else {
+                            el.value = record[header];
                         }
-                    } else if (element.type === 'radio') {
-                         // This path should ideally only be hit by initial referralType radios if they were part of activeElements query,
-                         // but specific PBIS radios are handled above. This is a safeguard.
-                        if (element.checked) {
-                            data[key] = element.value;
-                        }
-                    }
-                    else {
-                        data[key] = element.value;
                     }
                 });
 
+                // Update referral type display
+                document.getElementById('ReferralType').value = response.sheet;
 
-                // Retrieve additional read-only fields from the static info array
-                // These are passed back as they represent the original submission data
-                data['subNum'] = document.getElementById('subNum').value;
-                data['timeStamp'] = document.getElementById('timeStamp').value;
-                data['studentName'] = document.getElementById('studentName').value;
-                data['studentId'] = document.getElementById('studentId').value;
-                data['staffName'] = document.getElementById('staffName').value;
-                data['staffEmail'] = document.getElementById('staffEmail').value;
-                data['dateOfIncident'] = document.getElementById('dateOfIncident').value;
-                data['timeOfIncident'] = "<?= info[8] ?>"; // Always send original 24-hour time back
-                data['grade'] = document.getElementById('grade').value;
-                data['team'] = document.getElementById('team').value;
-                data['location'] = document.getElementById('location').value;
-                data['phone'] = document.getElementById('phone').value;
-                data['communicate'] = document.getElementById('communicate').value;
-                data['major'] = document.getElementById('major').value; // Infraction string
-                data['description'] = document.getElementById('description').value;
-                data['perceivedMotivation'] = document.getElementById('perceivedMotivation').value; // Perceived Motivation string
-                data['dayOfWeek'] = document.getElementById('dayOfWeek').value; // Day of Week string
-                data['action'] = document.getElementById('action').value; // Previous Actions Taken string
-                data['comments'] = document.getElementById('comments').value; // Other Comments string
+                // Update quick summary
+                document.getElementById('quickSubmissionId').textContent = record.SubmissionNumber;
+                document.getElementById('quickStudentName').textContent = record.StudentName;
+                document.getElementById('quickReferralType').textContent = response.sheet;
 
+                // Populate existing admin data if any
+                if (record.AdminComments) {
+                    document.getElementById('adminComments').value = record.AdminComments;
+                }
 
-                console.log("Admin Data to send:", data);
+                // Setup major referral specific sections
+                if (response.sheet === 'Major') {
+                    setupMajorReferralFields(record);
+                }
 
-                google.script.run
-                    .withSuccessHandler(onSuccess)
-                    .withFailureHandler(onFailure)
-                    .adminReport(JSON.stringify(data));
+                // FIXED: Setup reward trip sections for ALL referrals based on grade (moved after major setup)
+                setupRewardTripSection(record.GradeLevel, record);
+
+                // Store form data for comparison
+                formData = record;
+                
+                // Set hidden form fields
+                document.getElementById('submissionNumber').value = record.SubmissionNumber;
+                document.getElementById('sheetName').value = response.sheet;
+
+            } catch(e) {
+                showError({ message: "Failed to parse data from server. " + e.message });
+            }
+        }
+
+        function setupMajorReferralFields(record) {
+            const majorActionsContainer = document.getElementById('majorAdminActions');
+            majorActionsContainer.innerHTML = `
+                <div class="col-12 mb-3">
+                    <label class="form-label">Code of Conduct <span class="text-danger">*</span></label>
+                    <div class="p-3 border rounded checkbox-group">
+                        <div class="form-check"><input type="checkbox" class="form-check-input" name="CodeOfConduct" value="1. Disruption of School"><label>1. Disruption of School</label></div>
+                        <div class="form-check"><input type="checkbox" class="form-check-input" name="CodeOfConduct" value="2. Damage of Property"><label>2. Damage of Property</label></div>
+                        <div class="form-check"><input type="checkbox" class="form-check-input" name="CodeOfConduct" value="3. PA/Harassment/Threat"><label>3. PA/Harassment/Threat</label></div>
+                        <div class="form-check"><input type="checkbox" class="form-check-input" name="CodeOfConduct" value="4. Weapons/Dangerous Instruments"><label>4. Weapons/Dangerous Instruments</label></div>
+                        <div class="form-check"><input type="checkbox" class="form-check-input" name="CodeOfConduct" value="5. Illegal Substances"><label>5. Illegal Substances</label></div>
+                        <div class="form-check"><input type="checkbox" class="form-check-input" name="CodeOfConduct" value="6. Insubordination/Inappropriate Behaviors"><label>6. Insubordination/Inappropriate Behaviors</label></div>
+                        <div class="form-check"><input type="checkbox" class="form-check-input" name="CodeOfConduct" value="7. Profanity"><label>7. Profanity</label></div>
+                        <div class="form-check"><input type="checkbox" class="form-check-input" name="CodeOfConduct" value="8. Truancy/Tardy/Unexcused Absence"><label>8. Truancy/Tardy/Unexcused Absence</label></div>
+                        <div class="form-check"><input type="checkbox" class="form-check-input" name="CodeOfConduct" value="9. Theft"><label>9. Theft</label></div>
+                        <div class="form-check"><input type="checkbox" class="form-check-input" name="CodeOfConduct" value="10. Tobacco"><label>10. Tobacco</label></div>
+                        <div class="form-check"><input type="checkbox" class="form-check-input" name="CodeOfConduct" value="11. Falsification"><label>11. Falsification</label></div>
+                        <div class="form-check"><input type="checkbox" class="form-check-input" name="CodeOfConduct" value="12. Cafeteria"><label>12. Cafeteria</label></div>
+                        <div class="form-check"><input type="checkbox" class="form-check-input" name="CodeOfConduct" value="13. Hazing"><label>13. Hazing</label></div>
+                        <div class="form-check"><input type="checkbox" class="form-check-input" name="CodeOfConduct" value="14. Repeated Acts of Misconduct"><label>14. Repeated Acts of Misconduct</label></div>
+                        <div class="form-check"><input type="checkbox" class="form-check-input" name="CodeOfConduct" value="15. Bus Conduct"><label>15. Bus Conduct</label></div>
+                    </div>
+                    <div class="error-message" id="CodeOfConduct-error"></div>
+                </div>
+                
+                <div class="col-12 mb-3">
+                    <label class="form-label">Ohio State Reporting Codes <span class="text-danger">*</span></label>
+                    <div class="p-3 border rounded checkbox-group">
+                        <div class="form-check"><input type="checkbox" class="form-check-input" name="CRDCReporting" value="Not Applicable"><label>Not Applicable</label></div>
+                        <div class="form-check"><input type="checkbox" class="form-check-input" name="CRDCReporting" value="Expelled with Educational Services"><label>Expelled with Educational Services</label></div>
+                        <div class="form-check"><input type="checkbox" class="form-check-input" name="CRDCReporting" value="Expelled under Zero Tolerance Policy"><label>Expelled under Zero Tolerance Policy</label></div>
+                        <div class="form-check"><input type="checkbox" class="form-check-input" name="CRDCReporting" value="Referral to Law Enforcement"><label>Referral to Law Enforcement</label></div>
+                        <div class="form-check"><input type="checkbox" class="form-check-input" name="CRDCReporting" value="School Related Arrest"><label>School Related Arrest</label></div>
+                        <div class="form-check"><input type="checkbox" class="form-check-input" name="CRDCReporting" value="Sexual Harassment"><label>Sexual Harassment</label></div>
+                        <div class="form-check"><input type="checkbox" class="form-check-input" name="CRDCReporting" value="Harassment based upon Discrimination"><label>Harassment based upon Discrimination</label></div>
+                        <div class="form-check"><input type="checkbox" class="form-check-input" name="CRDCReporting" value="Harassment based upon Disability"><label>Harassment based upon Disability</label></div>
+                        <div class="form-check"><input type="checkbox" class="form-check-input" name="CRDCReporting" value="Used Mechanical Restraints"><label>Used Mechanical Restraints</label></div>
+                        <div class="form-check"><input type="checkbox" class="form-check-input" name="CRDCReporting" value="Used Physical Restraints"><label>Used Physical Restraints</label></div>
+                        <div class="form-check"><input type="checkbox" class="form-check-input" name="CRDCReporting" value="Used Seclusion"><label>Used Seclusion</label></div>
+                    </div>
+                    <div class="error-message" id="CRDCReporting-error"></div>
+                </div>
+                
+                <div class="col-12 mb-3">
+                    <label class="form-label">Administrative Consequences <span class="text-danger">*</span></label>
+                    <div class="p-3 border rounded checkbox-group">
+                        <div class="form-check"><input type="checkbox" class="form-check-input" name="AdminConsequence" value="Conference with Student"><label>Conference with Student</label></div>
+                        <div class="form-check"><input type="checkbox" class="form-check-input" name="AdminConsequence" value="Conference with Parent"><label>Conference with Parent</label></div>
+                        <div class="form-check"><input type="checkbox" class="form-check-input" name="AdminConsequence" value="Detention Before/After School"><label>Detention Before/After School</label></div>
+                        <div class="form-check"><input type="checkbox" class="form-check-input" name="AdminConsequence" value="Exclusion from Participation"><label>Exclusion from Participation</label></div>
+                        <div class="form-check"><input type="checkbox" class="form-check-input" name="AdminConsequence" value="Educational Assignment"><label>Educational Assignment</label></div>
+                        <div class="form-check"><input type="checkbox" class="form-check-input" name="AdminConsequence" value="Referral to Guidance"><label>Referral to Guidance</label></div>
+                        <div class="form-check"><input type="checkbox" class="form-check-input" name="AdminConsequence" value="Referral to Mediation"><label>Referral to Mediation</label></div>
+                        <div class="form-check"><input type="checkbox" class="form-check-input" name="AdminConsequence" value="Reimbursement for Damage"><label>Reimbursement for Damage</label></div>
+                        <div class="form-check"><input type="checkbox" class="form-check-input" name="AdminConsequence" value="Saturday Detention"><label>Saturday Detention</label></div>
+                        <div class="form-check"><input type="checkbox" class="form-check-input" name="AdminConsequence" value="Suspension"><label>Suspension</label></div>
+                        <div class="form-check"><input type="checkbox" class="form-check-input" name="AdminConsequence" value="Other" data-other-target="adminConsequenceOtherText"><label>Other</label></div>
+                    </div>
+                    <input type="text" class="form-control mt-2 other-text" id="adminConsequenceOtherText" name="adminConsequenceOtherText" placeholder="Please specify other consequence" maxlength="200">
+                    <div class="error-message" id="AdminConsequence-error"></div>
+                </div>
+            `;
+            
+            majorActionsContainer.style.display = 'block';
+            
+            // Setup other field toggle
+            const otherCheckbox = majorActionsContainer.querySelector('input[data-other-target="adminConsequenceOtherText"]');
+            if (otherCheckbox) {
+                otherCheckbox.addEventListener('change', function() {
+                    const otherText = document.getElementById('adminConsequenceOtherText');
+                    otherText.style.display = this.checked ? 'block' : 'none';
+                    if (!this.checked) otherText.value = '';
+                });
+            }
+
+            // FIXED: Pre-populate existing data without duplication
+            if (record.CodeOfConduct && record.CodeOfConduct.trim()) {
+                const values = record.CodeOfConduct.split(', ');
+                values.forEach(value => {
+                    const trimmedValue = value.trim();
+                    const checkbox = document.querySelector(`input[name="CodeOfConduct"][value="${trimmedValue}"]`);
+                    if (checkbox) checkbox.checked = true;
+                });
+            }
+
+            if (record.CRDCReporting && record.CRDCReporting.trim()) {
+                const values = record.CRDCReporting.split(', ');
+                values.forEach(value => {
+                    const trimmedValue = value.trim();
+                    const checkbox = document.querySelector(`input[name="CRDCReporting"][value="${trimmedValue}"]`);
+                    if (checkbox) checkbox.checked = true;
+                });
+            }
+
+            if (record.AdminConsequence && record.AdminConsequence.trim()) {
+                const values = record.AdminConsequence.split(', ');
+                values.forEach(value => {
+                    const trimmedValue = value.trim();
+                    if (trimmedValue.startsWith('Other: ')) {
+                        const otherCheckbox = document.querySelector(`input[name="AdminConsequence"][value="Other"]`);
+                        if (otherCheckbox) {
+                            otherCheckbox.checked = true;
+                            document.getElementById('adminConsequenceOtherText').value = trimmedValue.replace('Other: ', '');
+                            document.getElementById('adminConsequenceOtherText').style.display = 'block';
+                        }
+                    } else {
+                        const checkbox = document.querySelector(`input[name="AdminConsequence"][value="${trimmedValue}"]`);
+                        if (checkbox) checkbox.checked = true;
+                    }
+                });
+            }
+        }
+
+        // FIXED: Reward trip section now appears for ALL referrals based on grade level
+        function setupRewardTripSection(gradeLevel, record) {
+            const rewardTripContainer = document.getElementById('rewardTripSection');
+            let tripHtml = '';
+            
+            const grade = parseInt(gradeLevel);
+            
+            // FIXED: Show reward trip sections for all grades 6-8, regardless of referral type
+            if (grade === 6) {
+                tripHtml += createRadioGroupHtml('Swings & Things Reward Trip', 'RewardTripPts', record.RewardTripPts || '');
+            } else if (grade === 7) {
+                tripHtml += createRadioGroupHtml('Bowling Trip', 'RewardTripPts', record.RewardTripPts || '');
+            } else if (grade === 8) {
+                tripHtml += createRadioGroupHtml('Cedar Point Trip', 'RewardTripPts', record.RewardTripPts || '');
+                tripHtml += createRadioGroupHtml('Washington DC Trip', 'DCPoints', record.DCPoints || '');
+            }
+            
+            if (tripHtml) {
+                rewardTripContainer.innerHTML = `
+                    <div class="reward-trip-section">
+                        <h5 class="mb-3">Reward Trip Point Deductions</h5>
+                        ${tripHtml}
+                    </div>
+                `;
+                rewardTripContainer.style.display = 'block';
+            }
+        }
+
+        // FIXED: Radio group creation function - prevent duplication
+        function createRadioGroupHtml(title, name, selectedValue) {
+            let html = `<div class="mb-4">
+                <label class="form-label fw-bold">${title}</label>
+                <div class="p-3 border rounded">
+                    <div class="radio-button-group">`;
+            
+            for (let i = 0; i <= 10; i++) {
+                const checked = selectedValue == i ? 'checked' : '';
+                html += `<div class="form-check">
+                    <input class="form-check-input" type="radio" name="${name}" id="${name}${i}" value="${i}" ${checked}>
+                    <label class="form-check-label" for="${name}${i}">${i}</label>
+                </div>`;
+            }
+            html += `    </div>
+                </div>
+            </div>`;
+            return html;
+        }
+
+        function setupEventListeners() {
+            // Form submission
+            document.getElementById('adminForm').addEventListener('submit', handleFormSubmit);
+            
+            // Save draft button
+            document.getElementById('saveDraftBtn').addEventListener('click', saveDraft);
+            
+            // Print and share buttons
+            document.getElementById('printBtn').addEventListener('click', printReferral);
+            document.getElementById('shareBtn').addEventListener('click', shareReferralPDF);
+            
+            // Form change tracking for autosave
+            document.getElementById('adminForm').addEventListener('input', () => {
+                clearTimeout(autoSaveTimer);
+                autoSaveTimer = setTimeout(autoSave, AUTOSAVE_DELAY);
+            });
+        }
+
+        function setupCharacterCounters() {
+            const adminComments = document.getElementById('adminComments');
+            if (adminComments) {
+                adminComments.addEventListener('input', function() {
+                    const remaining = 2000 - this.value.length;
+                    document.getElementById('adminCommentsCounter').textContent = remaining;
+                    document.getElementById('adminCommentsCounter').classList.toggle('text-danger', remaining < 100);
+                });
+            }
+        }
+
+        function setupAutoSave() {
+            const form = document.getElementById('adminForm');
+            const inputs = form.querySelectorAll('input, textarea, select');
+            
+            inputs.forEach(input => {
+                input.addEventListener('input', () => {
+                    clearTimeout(autoSaveTimer);
+                    showAutosaveStatus('Changes pending...', 'warning');
+                    
+                    autoSaveTimer = setTimeout(() => {
+                        autoSave();
+                    }, AUTOSAVE_DELAY);
+                });
+            });
+        }
+
+        function autoSave() {
+            const formData = collectFormData();
+            
+            showAutosaveStatus('Auto-saving...', 'info');
+            
+            google.script.run
+                .withSuccessHandler(() => {
+                    showAutosaveStatus('Changes saved automatically', 'success');
+                })
+                .withFailureHandler(() => {
+                    showAutosaveStatus('Auto-save failed', 'danger');
+                })
+                .autoSaveRecord(formData);
+        }
+
+        function saveDraft() {
+            const formData = collectFormData();
+            
+            document.getElementById('saveDraftBtn').disabled = true;
+            document.getElementById('saveDraftBtn').textContent = 'Saving...';
+            
+            google.script.run
+                .withSuccessHandler(() => {
+                    showAutosaveStatus('Draft saved successfully!', 'success');
+                    document.getElementById('saveDraftBtn').disabled = false;
+                    document.getElementById('saveDraftBtn').textContent = 'Save Progress';
+                })
+                .withFailureHandler(() => {
+                    showAutosaveStatus('Save failed', 'danger');
+                    document.getElementById('saveDraftBtn').disabled = false;
+                    document.getElementById('saveDraftBtn').textContent = 'Save Progress';
+                })
+                .updateRecord(formData);
+        }
+
+        // FIXED: Collect form data without duplication
+        function collectFormData() {
+            const form = document.getElementById('adminForm');
+            const formObject = {};
+            
+            // Handle regular inputs
+            const inputs = form.querySelectorAll('input:not([type="checkbox"]):not([type="radio"]), textarea, select');
+            inputs.forEach(input => {
+                if (input.name && input.value) {
+                    formObject[input.name] = input.value;
+                }
             });
 
-            function onSuccess(message) {
-                outputDiv.innerHTML = `<div class="alert alert-success">${message}</div>`;
-                btnSubmitAdmin.disabled = false;
-                // Optionally reset the form or redirect
-                // adminForm.reset();
-                // adminForm.classList.remove('was-validated');
+            // FIXED: Handle checkboxes properly - avoid duplication
+            const checkboxGroups = {};
+            form.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
+                const name = cb.getAttribute('name');
+                if (name) {
+                    if (!checkboxGroups[name]) {
+                        checkboxGroups[name] = [];
+                    }
+                    checkboxGroups[name].push(cb.value);
+                }
+            });
+            
+            // Join checkbox values with proper formatting
+            Object.keys(checkboxGroups).forEach(name => {
+                formObject[name] = checkboxGroups[name].join(', ');
+            });
+
+            // Handle radio buttons
+            form.querySelectorAll('input[type="radio"]:checked').forEach(radio => {
+                if (radio.name) {
+                    formObject[radio.name] = radio.value;
+                }
+            });
+
+            // Handle "Other" text field for consequences
+            if (formObject.adminConsequenceOtherText && formObject.AdminConsequence) {
+                formObject.AdminConsequence = formObject.AdminConsequence.replace(/\bOther\b/, `Other: ${formObject.adminConsequenceOtherText}`);
             }
 
-            function onFailure(error) {
-                outputDiv.innerHTML = `<div class="alert alert-danger">Error: ${error.message || error}</div>`;
-                btnSubmitAdmin.disabled = false;
+            return formObject;
+        }
+
+        function validateAdminForm(formData) {
+            const errors = [];
+            const sheetName = document.getElementById('sheetName').value;
+            
+            if (sheetName === 'Major') {
+                if (!formData.CodeOfConduct) {
+                    errors.push('Code of Conduct selection is required for Major referrals');
+                }
+                if (!formData.CRDCReporting) {
+                    errors.push('Ohio State Reporting Code selection is required for Major referrals');
+                }
+                if (!formData.AdminConsequence) {
+                    errors.push('Administrative Consequence selection is required for Major referrals');
+                }
             }
-        });
+            
+            return errors;
+        }
+
+        function handleFormSubmit(e) {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('submitBtn');
+            const outputDiv = document.getElementById('output');
+            
+            const formData = collectFormData();
+            
+            // Validate form
+            const validationErrors = validateAdminForm(formData);
+            if (validationErrors.length > 0) {
+                alert('Please fix the following errors:\n\n' + validationErrors.join('\n'));
+                return;
+            }
+            
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Updating...';
+            outputDiv.innerHTML = '';
+            
+            google.script.run
+                .withSuccessHandler(response => {
+                    outputDiv.innerHTML = `<div class="alert alert-success">${response}</div>`;
+                    submitBtn.textContent = 'Updated Successfully';
+                    showAutosaveStatus('Referral completed successfully!', 'success');
+                    setTimeout(() => window.top.close(), 2500);
+                })
+                .withFailureHandler(error => {
+                    outputDiv.innerHTML = `<div class="alert alert-danger">Update failed: ${error.message}</div>`;
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Update and Close Referral';
+                    showAutosaveStatus('Update failed', 'danger');
+                })
+                .updateRecordSecure(formData);
+        }
+
+        // FIXED: Share PDF functionality with administrator's Gmail account
+        function shareReferralPDF() {
+            const shareBtn = document.getElementById('shareBtn');
+            shareBtn.disabled = true;
+            shareBtn.textContent = 'Creating PDF...';
+            
+            showAutosaveStatus('Generating PDF attachment...', 'info');
+            
+            const referralData = {
+                submissionNumber: document.getElementById('SubmissionNumber').value,
+                studentName: document.getElementById('StudentName').value,
+                staffName: document.getElementById('StaffName').value,
+                dateOfIncident: document.getElementById('DateOfIncident').value,
+                location: document.getElementById('Location').value,
+                infraction: document.getElementById('Infraction').value,
+                description: document.getElementById('DescriptionOfInfraction').value,
+                adminComments: document.getElementById('adminComments').value || '',
+                referralType: document.getElementById('ReferralType').value
+            };
+            
+            console.log('Sending referral data:', referralData);
+            
+            google.script.run
+                .withSuccessHandler(response => {
+                    console.log('PDF creation success:', response);
+                    showAutosaveStatus('Email draft created in your Gmail!', 'success');
+                    shareBtn.disabled = false;
+                    shareBtn.textContent = 'Share PDF';
+                    alert('Email draft with PDF created in your Gmail drafts!');
+                })
+                .withFailureHandler(error => {
+                    console.error('PDF creation error:', error);
+                    showAutosaveStatus('PDF generation failed', 'danger');
+                    shareBtn.disabled = false;
+                    shareBtn.textContent = 'Share PDF';
+                    alert('PDF generation failed: ' + error.message);
+                })
+                .createEmailDraftWithPDF(referralData);
+        }
+
+        function showAutosaveStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('autosaveStatus');
+            statusDiv.className = `autosave-status alert alert-${type}`;
+            statusDiv.textContent = message;
+            statusDiv.style.display = 'block';
+            
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+            }, 3000);
+        }
+
+        function showError(error) {
+            document.getElementById('loader').innerHTML = `
+                <div class="alert alert-danger">
+                    <h5>Error Loading Referral</h5>
+                    <p>${error.message}</p>
+                    <button class="btn btn-outline-danger" onclick="location.reload()">Retry</button>
+                </div>
+            `;
+        }
+
+        function printReferral() {
+            const printContent = generatePrintContent();
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <html>
+                    <head>
+                        <title>Discipline Referral - ${document.getElementById('StudentName').value}</title>
+                        <style>
+                            body { font-family: Arial, sans-serif; margin: 20px; }
+                            .header { text-align: center; margin-bottom: 30px; }
+                            .section { margin-bottom: 20px; padding: 15px; border: 1px solid #ddd; }
+                            .field { margin: 5px 0; }
+                            .label { font-weight: bold; }
+                            @media print { .no-print { display: none; } }
+                        </style>
+                    </head>
+                    <body>
+                        ${printContent}
+                        <div class="no-print" style="text-align: center; margin-top: 30px;">
+                            <button onclick="window.print()">Print</button>
+                            <button onclick="window.close()">Close</button>
+                        </div>
+                    </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+
+        function generatePrintContent() {
+            return `
+                <div class="header">
+                    <h1>Discipline Referral Report</h1>
+                    <p>Student: ${document.getElementById('StudentName').value} | 
+                       Submission: ${document.getElementById('SubmissionNumber').value} |
+                       Date: ${new Date().toLocaleDateString()}</p>
+                </div>
+                <div class="section">
+                    <h3>Incident Details</h3>
+                    <div class="field"><span class="label">Date of Incident:</span> ${document.getElementById('DateOfIncident').value}</div>
+                    <div class="field"><span class="label">Location:</span> ${document.getElementById('Location').value}</div>
+                    <div class="field"><span class="label">Staff Member:</span> ${document.getElementById('StaffName').value}</div>
+                    <div class="field"><span class="label">Description:</span> ${document.getElementById('DescriptionOfInfraction').value}</div>
+                </div>
+                <div class="section">
+                    <h3>Administrative Action</h3>
+                    <div class="field"><span class="label">Administrator Comments:</span> ${document.getElementById('adminComments').value}</div>
+                    <div class="field"><span class="label">Status:</span> Completed</div>
+                    <div class="field"><span class="label">Processed Date:</span> ${new Date().toLocaleString()}</div>
+                </div>
+            `;
+        }
     </script>
 </body>
 </html>
