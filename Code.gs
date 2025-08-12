@@ -1,454 +1,1023 @@
-var CACHE_PROP = CacheService.getPublicCache();
-var ss = SpreadsheetApp.getActiveSpreadsheet();
-var SETTINGS_SHEET = "_Settings";
-var CACHE_SETTINGS = false;
-var SETTINGS_CACHE_TTL = 900;
-var cache = JSONCacheService();
-var SETTINGS = getSettings();
-var minorSheet = ss.getSheetByName("Minor"); // Reference to Minor sheet
-var majorSheet = ss.getSheetByName("Major"); // Reference to Major sheet
-var compSheet = ss.getSheetByName("Completed"); // Still referenced, but rows won't be moved here
-var studentInfoSheet = ss.getSheetByName("StudentInfo"); // Reference to StudentInfo sheet
-
 /**
- * Handles HTTP GET requests to the web app.
- * Renders the appropriate HTML form (admin or main form)
- * and passes necessary data like student names.
- * @param {GoogleAppsScript.Events.AppsScriptHttpRequestEvent} e The event object.
- * @returns {GoogleAppsScript.HTML.HtmlOutput} The HTML output.
+ * @OnlyCurrentDoc
+ * Enhanced School Discipline Referral System
+ * Version 2.3 - FIXED: Dynamic headers, time field, checkbox duplication, home communication, reward trips, email drafts
  */
+
+// --- GLOBAL CONFIGURATION ---
+const SPREADSHEET_ID = '1oMgE9AdGDR_YgVTkeOhYrENDo0K1lt1sWZxz3Hzko4A';
+const ADMIN_EMAIL = 'jvanarnhem@ofcs.net';
+const DRIVE_FOLDER_ID = '1HRj-Evdgie7w3SmMLTuS2oxr8u7tT8NC';
+const RATE_LIMIT_CACHE = {};
+const FIELD_LIMITS = {
+  staffName: 100,
+  staffEmail: 100,
+  descriptionOfInfraction: 2000,
+  adminComments: 2000,
+  comments: 1000,
+  infractionOtherText: 500,
+  actionsTakenOtherText: 500
+};
+
+// FIXED: Cache for spreadsheet headers to handle column reordering
+let HEADER_CACHE = {};
+
+// --- ROUTING & SERVING HTML ---
 function doGet(e) {
-  var idVal = e.parameter.idNum;
-  var template;
-
-  if (idVal) {
-    // If idNum parameter is present, render the admin form for a specific referral
-    template = HtmlService.createTemplateFromFile("admin.html");
-    var foundInfo = null;
-    var targetSheetName = null; // Store sheet name here
-
-    // Search Minor sheet first
-    if (minorSheet) {
-      var minorData = minorSheet.getDataRange().getValues();
-      for (var i = 0; i < minorData.length; i++) {
-        if (minorData[i][0] == idVal) {
-          foundInfo = minorData[i];
-          targetSheetName = "Minor";
-          break;
-        }
-      }
-    }
-
-    // If not found in Minor, search Major sheet
-    if (!foundInfo && majorSheet) {
-      var majorData = majorSheet.getDataRange().getValues();
-      for (var i = 0; i < majorData.length; i++) {
-        if (majorData[i][0] == idVal) {
-          foundInfo = majorData[i];
-          targetSheetName = "Major";
-          break;
-        }
-      }
-    }
-
-    if (foundInfo) {
-      // Check the Status column (index 2) of the found referral
-      var status = foundInfo[2]; // Assuming Status is at index 2
-      if (status === "Completed") {
-        template = HtmlService.createTemplateFromFile("DoneAlready.html");
-      } else {
-        // Add referral type at the end of the array for admin.html to use for updates
-        // This will be info[26] in admin.html (since 2 new columns added before and 2 more after previous info[22])
-        foundInfo.push(targetSheetName); // info[26] will be 'Minor' or 'Major'
-        template.info = foundInfo;
-      }
+  try {
+    if (e.parameter.page === 'admin' && e.parameter.id) {
+      const template = HtmlService.createTemplateFromFile('admin.html');
+      template.submissionId = e.parameter.id;
+      return template.evaluate()
+          .setTitle('Admin Referral Review')
+          .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.DEFAULT);
     } else {
-      template = HtmlService.createTemplateFromFile("DoneAlready.html");
+      const template = HtmlService.createTemplateFromFile('forms.html');
+      template.scriptUrl = ScriptApp.getService().getUrl();
+      return template.evaluate()
+          .setTitle('School Discipline Referral Form')
+          .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.DEFAULT);
     }
-  } else {
-    // If no idNum, render the main submission form
-    template = HtmlService.createTemplateFromFile('forms.html');
-    // Pass student names to the forms.html template for the Tom Select dropdown (Column A only)
-    template.studentNames = getStudentNames();
+  } catch (error) {
+    Logger.log('Error in doGet: ' + error.message);
+    return HtmlService.createHtmlOutput('<h1>Service Temporarily Unavailable</h1><p>Please try again later.</p>');
   }
-
-  var html = template.evaluate();
-  var output = HtmlService.createHtmlOutput(html).setTitle("PBIS Office Referral");
-  return output;
 }
 
-/**
- * Fetches student names from the "StudentInfo" sheet (Column A).
- * @returns {Array<string>} An array of student names.
- */
-function getStudentNames() {
-  if (!studentInfoSheet) {
-    Logger.log("StudentInfo sheet not found.");
-    return [];
+// --- FIXED: DYNAMIC HEADER MAPPING FUNCTIONS ---
+function getSheetHeaders(sheetName) {
+  try {
+    const cacheKey = `headers_${sheetName}`;
+    if (HEADER_CACHE[cacheKey]) {
+      return HEADER_CACHE[cacheKey];
+    }
+    
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(sheetName);
+    if (!sheet) throw new Error(`Sheet "${sheetName}" not found.`);
+    
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    HEADER_CACHE[cacheKey] = headers;
+    
+    return headers;
+  } catch (error) {
+    Logger.log('Error getting sheet headers: ' + error.message);
+    throw error;
   }
-  var data = studentInfoSheet.getDataRange().getValues();
-  var studentList = [];
-  if (data.length > 1) { // Assuming header row, so start from second row
-    for (var i = 1; i < data.length; i++) {
-      var name = data[i][0] ? data[i][0].toString().trim() : ''; // Column A (index 0) for student name
-      if (name) {
-        studentList.push(name);
+}
+
+function getColumnIndex(headers, columnName) {
+  const index = headers.indexOf(columnName);
+  if (index === -1) {
+    Logger.log(`Warning: Column "${columnName}" not found in headers`);
+  }
+  return index;
+}
+
+function mapDataToHeaders(headers, data) {
+  const mappedData = {};
+  headers.forEach((header, index) => {
+    mappedData[header] = data[index] || '';
+  });
+  return mappedData;
+}
+
+// --- SECURITY & VALIDATION FUNCTIONS ---
+function validateUserAccess() {
+  try {
+    const userEmail = Session.getActiveUser().getEmail();
+    if (!userEmail) {
+      throw new Error('User not authenticated');
+    }
+    
+    console.log(`Access by user: ${userEmail} at ${new Date().toISOString()}`);
+    return userEmail;
+  } catch (error) {
+    Logger.log('Authentication error: ' + error.message);
+    throw new Error('Authentication required');
+  }
+}
+
+function checkRateLimit(userEmail, maxRequests = 10, windowMinutes = 5) {
+  const now = Date.now();
+  const windowMs = windowMinutes * 60 * 1000;
+  
+  if (!RATE_LIMIT_CACHE[userEmail]) {
+    RATE_LIMIT_CACHE[userEmail] = [];
+  }
+  
+  RATE_LIMIT_CACHE[userEmail] = RATE_LIMIT_CACHE[userEmail].filter(
+    timestamp => now - timestamp < windowMs
+  );
+  
+  if (RATE_LIMIT_CACHE[userEmail].length >= maxRequests) {
+    throw new Error(`Rate limit exceeded. Maximum ${maxRequests} requests per ${windowMinutes} minutes.`);
+  }
+  
+  RATE_LIMIT_CACHE[userEmail].push(now);
+}
+
+function sanitizeInput(input) {
+  if (typeof input !== 'string') return input;
+  
+  return input.replace(/<[^>]*>/g, '')
+              .replace(/[<>]/g, '')
+              .trim();
+}
+
+function validateFormData(formObject) {
+  const errors = [];
+  const sanitizedData = {};
+  
+  const requiredFields = ['studentName', 'staffName', 'staffEmail', 'dateOfIncident', 'descriptionOfInfraction'];
+  
+  for (const field of requiredFields) {
+    const value = formObject[field];
+    if (!value || typeof value !== 'string' || value.trim().length === 0) {
+      errors.push(`${field} is required`);
+    } else {
+      sanitizedData[field] = sanitizeInput(value);
+      
+      if (FIELD_LIMITS[field] && sanitizedData[field].length > FIELD_LIMITS[field]) {
+        errors.push(`${field} exceeds maximum length of ${FIELD_LIMITS[field]} characters`);
       }
     }
   }
-  return studentList;
-}
-
-/**
- * Fetches student's details from the "StudentInfo" sheet based on student NAME.
- * Assumes Student Name in Column A (index 0), StudentID in Column B (index 1),
- * GradeLevel in Column E (index 4), Team in Column F (index 5).
- * @param {string} studentName The student's full name to search for.
- * @returns {Object} An object with 'studentId', 'gradeLevel', and 'team', or null if not found.
- */
-function getStudentInfo(studentName) {
-  if (!studentInfoSheet) {
-    Logger.log("StudentInfo sheet not found for student details lookup.");
-    return null;
-  }
-  var data = studentInfoSheet.getDataRange().getValues();
-  for (var i = 1; i < data.length; i++) { // Skip header row
-    // Compare student name from form with Column A of StudentInfo sheet
-    if (data[i][0] && data[i][0].toString().trim().toLowerCase() === studentName.toLowerCase()) {
-      return {
-        studentId: data[i][1] ? data[i][1].toString().trim() : '', // Column B (index 1) for StudentID
-        gradeLevel: data[i][4] ? data[i][4].toString().trim() : '', // Column E (index 4) for GradeLevel
-        team: data[i][5] ? data[i][5].toString().trim() : '' // Column F (index 5) for Team
-      };
+  
+  if (formObject.staffEmail) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formObject.staffEmail)) {
+      errors.push('Valid staff email is required');
     }
   }
-  return null; // Student name not found
-}
-
-/**
- * Submits a new referral report (either Minor or Major) to the "Minor" or "Major" sheet.
- * @param {string} data JSON string of form data.
- * @returns {string} Success or failure message.
- */
-function submitReport(data) {
-  var data3 = JSON.parse(data);
-  var newStuff = [];
-  var subNumber = +new Date(); // Unique submission ID
-  var timeStamp = new Date();
-  var submitterEmail = Session.getActiveUser().getEmail(); // Get the email of the user submitting
-  var targetSheet;
-
-  if (data3.referralType === "Minor") {
-    targetSheet = minorSheet;
-  } else if (data3.referralType === "Major") {
-    targetSheet = majorSheet;
-  } else {
-    return "Error: Invalid referral type provided.";
-  }
-
-  if (!targetSheet) {
-    Logger.log("Target sheet not found for referral type: " + data3.referralType);
-    return "Error: The '" + data3.referralType + "' sheet does not exist in the spreadsheet. Please create it.";
-  }
-
-  // Retrieve student details using the selected student name
-  var studentNameFromForm = data3.studentName; // This is the plain student name from Tom Select
-  var studentDetails = getStudentInfo(studentNameFromForm);
-  var studentId = studentDetails ? studentDetails.studentId : '';
-  var gradeLevel = studentDetails ? studentDetails.gradeLevel : '';
-  var team = studentDetails ? studentDetails.team : '';
-
-  // Determine the date of incident for Day of Week calculation
-  var incidentDateStr = data3.referralType === "Minor" ? data3.minorDateOfIncident : data3.majorDateOfIncident;
-  var dayOfWeek = '';
-  if (incidentDateStr) {
-    try {
-      var dateParts = incidentDateStr.split('-'); //YYYY-MM-DD
-      var incidentDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
-      var days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-      dayOfWeek = days[incidentDate.getDay()];
-    } catch (e) {
-      Logger.log("Error parsing date for Day of Week: " + e.message);
-      dayOfWeek = 'Unknown';
+  
+  if (formObject.dateOfIncident) {
+    const incidentDate = new Date(formObject.dateOfIncident);
+    const today = new Date();
+    const oneYearAgo = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate());
+    
+    if (isNaN(incidentDate.getTime())) {
+      errors.push('Valid date of incident is required');
+    } else if (incidentDate > today) {
+      errors.push('Date of incident cannot be in the future');
+    } else if (incidentDate < oneYearAgo) {
+      errors.push('Date of incident cannot be more than one year ago');
     }
   }
+  
+  Object.keys(formObject).forEach(key => {
+    if (!sanitizedData[key] && typeof formObject[key] === 'string') {
+      sanitizedData[key] = sanitizeInput(formObject[key]);
+    }
+  });
+  
+  return { errors, sanitizedData };
+}
 
-  // Column mapping for new sheet structure
-  // 0: SubmissionNumber
-  newStuff.push(subNumber);
-  // 1: Timestamp
-  newStuff.push("'" + timeStamp.toLocaleDateString('en-US'));
-  // 2: Status
-  newStuff.push("Pending");
-  // 3: StudentName
-  newStuff.push(studentNameFromForm);
-  // 4: StudentID
-  newStuff.push(studentId);
-  // 5: StaffName
-  newStuff.push(data3.referralType === "Minor" ? data3.minorStaffName : data3.majorStaffName || '');
-  // 6: StaffEmail
-  newStuff.push(data3.referralType === "Minor" ? data3.minorStaffEmail : data3.majorStaffEmail || submitterEmail);
-  // 7: DateOfIncident
-  newStuff.push("'" + (data3.referralType === "Minor" ? data3.minorDateOfIncident : data3.majorDateOfIncident) || '');
-  // 8: TimeOfIncident
-  newStuff.push("'" + (data3.referralType === "Minor" ? data3.minorTimeOfIncident : data3.majorTimeOfIncident) || '');
-  // 9: GradeLevel
-  newStuff.push(gradeLevel); // Populated from StudentInfo
-  // 10: Team
-  newStuff.push(team); // Populated from StudentInfo
-  // 11: Location
-  newStuff.push(data3.referralType === "Minor" ? data3.minorLocation : data3.majorLocation || '');
-  // 12: HomeCommunications (Only for Major)
-  newStuff.push(data3.referralType === "Major" ? (Array.isArray(data3.homeCommunicationPhone) ? data3.homeCommunicationPhone.join(", ") : data3.homeCommunicationPhone || '') : '');
-  // 13: DetailsOfCommunication
-  newStuff.push(data3.referralType === "Major" ? data3.majorCommunicate : '');
-  // 14: Infraction
-  if (data3.referralType === "Minor") {
-      newStuff.push(Array.isArray(data3.minorInfraction) ? data3.minorInfraction.join(", ") : '');
-  } else { // Major
-      newStuff.push(Array.isArray(data3.majorInfraction) ? data3.majorInfraction.join(", ") : '');
-  }
-  // 15: DescriptionOfInfraction
-  newStuff.push(data3.referralType === "Minor" ? data3.minorDescription : data3.majorDescription || '');
-  // 16: Previous Action(s) Taken
-  newStuff.push(Array.isArray(data3.referralType === "Minor" ? data3.minorActionTaken : data3.majorActionTaken) ? (data3.referralType === "Minor" ? data3.minorActionTaken : data3.majorActionTaken).join(", ") : '');
-  // 17: PerceivedMotivation (NEW COLUMN)
-  newStuff.push(Array.isArray(data3.referralType === "Minor" ? data3.minorPerceivedMotivation : data3.majorPerceivedMotivation) ? (data3.referralType === "Minor" ? data3.minorPerceivedMotivation : data3.majorPerceivedMotivation).join(", ") : '');
-  // 18: DayOfWeek (NEW COLUMN)
-  newStuff.push(dayOfWeek);
-  // 19: Comments (OLD 17)
-  newStuff.push(data3.referralType === "Minor" ? data3.minorComments : data3.majorComments || '');
-  // 20: StatusCodeOfConduct (Admin field - OLD 18)
-  newStuff.push("");
-  // 21: CRDCReporting (Admin field - OLD 19)
-  newStuff.push("");
-  // 22: AdminConsequence (Admin field - OLD 20)
-  newStuff.push("");
-  // 23: AdminComments (Admin field - OLD 21)
-  newStuff.push("");
-  // 24: PBIS Reward (NEW - admin input)
-  newStuff.push("");
-  // 25: Washington DC (NEW - admin input, only for 8th grade)
-  newStuff.push("");
-
-
+// --- PERFORMANCE OPTIMIZED DATA RETRIEVAL ---
+function getStudentNamesOptimized() {
   try {
-    targetSheet.appendRow(newStuff);
-
-    // Prepare email notification subject and body
-    var subject = (data3.referralType === "Minor" ? "Minor PBIS Office Referral" : "Major PBIS Office Referral") + " for " + studentNameFromForm + " #" + subNumber;
-    var htmlBody = "<h2>PBIS Office Referral Submitted. </h2>";
-    // Pass the referral type in the URL for doGet to know which sheet to query
-    htmlBody += '<p><strong>Click <a href="' + ScriptApp.getService().getUrl() + '?idNum=' + subNumber + '">on this link</a> to see full details of referral and to add administrative feedback.</strong></p>';
-    htmlBody += "<p>&nbsp;</p>";
-    htmlBody += "<h4>Summary: </h4>";
-    htmlBody += "<p>Referral Type: " + data3.referralType + "<br>";
-    htmlBody += "Student: " + studentNameFromForm + "<br>";
-    htmlBody += "Student ID: " + studentId + "<br>";
-    htmlBody += "Grade Level: " + gradeLevel + "<br>";
-    htmlBody += "Team: " + team + "<br>";
-    htmlBody += "Date of Incident: " + (data3.referralType === "Minor" ? data3.minorDateOfIncident : data3.majorDateOfIncident)  + "<br>";
-    htmlBody += "Submitted By: " + (data3.referralType === "Minor" ? data3.minorStaffName : data3.majorStaffName)  + "<br>";
-    htmlBody += "Date submitted: " + timeStamp.toLocaleDateString('en-US') + "<br>";
-
-    MailApp.sendEmail({
-      to: SETTINGS.ADMIN_EMAIL,
-      subject: subject,
-      htmlBody: htmlBody
-    });
-    return "Submission successful. You may close this window now.";
-
-  } catch(err) {
-    Logger.log("Error in submitReport: " + err.message);
-    return "Something went wrong during submission: " + err.message;
-  }
-}
-
-/**
- * Handles administrative feedback and marks a referral as complete.
- * Now receives referralType to target the correct sheet.
- * @param {string} data JSON string of admin form data.
- * @returns {string} Success or failure message.
- */
-function adminReport (data) {
-  Logger.log("adminReport function called.");
-  var data3 = JSON.parse(data);
-  var consequences = Array.isArray(data3.adminConsequence) ? data3.adminConsequence.join(", ") : '';
-  var conducts = Array.isArray(data3.codeConduct) ? data3.codeConduct.join(", ") : '';
-  var codes = Array.isArray(data3.CRDCcode) ? data3.CRDCcode.join(", ") : '';
-  var referralType = data3.referralTypeDisplay; // Get referral type from hidden field in admin.html
-  var pbisReward = data3.pbisReward || ''; // New PBIS Reward field
-  var washingtonDC = data3.washingtonDC || ''; // New Washington DC field
-
-  try {
-    // The starting index for admin fields will now be 20 (for StatusCodeOfConduct)
-    // We explicitly pass the starting index (20) and let 'update' handle the rest.
-    update(data3.subNum, referralType, 20, conducts, codes, consequences, data3.adminComments, pbisReward, washingtonDC);
-
-    // studentDisplay is info[3] from admin.html
-    var studentDisplay = data3.studentName || "Unknown Student";
-    // studentIdDisplay is info[4] from admin.html
-    var studentIdDisplay = data3.studentId || "";
-
-    var finalDoc = doMerge(
-      data3.subNum,
-      studentDisplay,
-      SETTINGS.DESTINATION_FOLDER_ID,
-      SETTINGS.TEMPLATE_ID,
-      SpreadsheetApp.getActive().getId() // ← always the file you just wrote to
-    );
-
-    var htmlBody = "<p>The following Office Referral Form was completed by an administrator:</p>";
-    htmlBody += "Date submitted: " + data3.timeStamp + "<br>";
-    htmlBody += "<p>Student: " + studentDisplay + " (ID: " + studentIdDisplay + ")<br>";
-    htmlBody += "Date of Incident: " + data3.dateOfIncident + "<br>";
-    htmlBody += "<p>Administrator Consequence:" + consequences + "</p>";
-    htmlBody += "<p>Administrator Comments:" + data3.adminComments + "</p>";
-    if (pbisReward) {
-      htmlBody += "<p>PBIS Reward: " + pbisReward + "</p>";
+    validateUserAccess();
+    
+    const cache = CacheService.getScriptCache();
+    const cachedNames = cache.get('student_names');
+    
+    if (cachedNames) {
+      Logger.log('Using cached student names');
+      return JSON.parse(cachedNames);
     }
-    if (washingtonDC) {
-      htmlBody += "<p>Washington DC: " + washingtonDC + "</p>";
+    
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName('StudentInfo');
+    if (!sheet) throw new Error('Sheet "StudentInfo" not found.');
+    
+    // FIXED: Use dynamic headers
+    const headers = getSheetHeaders('StudentInfo');
+    const dropDownColIndex = getColumnIndex(headers, 'DropDown');
+    
+    if (dropDownColIndex === -1) {
+      throw new Error('Column "DropDown" not found in "StudentInfo" sheet.');
     }
-
-
-    MailApp.sendEmail({
-      to: data3.staffEmail + ", " + SETTINGS.FINAL_EMAIL,
-      subject: "Completed PBIS Office Referral for "+ studentDisplay + " #" + data3.subNum,
-      htmlBody: htmlBody,
-      attachments: [finalDoc.getAs(MimeType.PDF)]
-    });
-
-    return "Your submission is complete. You may close this window now.";
-  } catch (err) {
-    Logger.log("Error in adminReport: " + err.message);
-    return "Something went wrong during admin submission: " + err.message;
-  }
-}
-
-/**
- * Updates a row in the Minor or Major sheet with admin feedback and changes status to "Completed".
- * @param {number} num Submission ID.
- * @param {string} referralType The type of referral ("Minor" or "Major").
- * @param {number} startAdminColIndex Index of the first admin-editable column (StatusCodeOfConduct - 20).
- * @param {string} conducts Code of Conduct value.
- * @param {string} CRDCcodes CRDC Codes value.
- * @param {string} adminConsequence Administrative Consequence value.
- * @param {string} adminComments Administrative Comments value.
- * @param {string} pbisReward PBIS Reward value.
- * @param {string} washingtonDC Washington DC value (optional).
- */
-function update (num, referralType, startAdminColIndex, conducts, CRDCcodes, adminConsequence, adminComments, pbisReward, washingtonDC) {
-  var targetSheet = (referralType === "Minor") ? minorSheet : majorSheet;
-
-  if (!targetSheet) {
-    Logger.log("Target sheet not found for update: " + referralType);
-    throw new Error("Target sheet for update not found.");
-  }
-
-  var data = targetSheet.getDataRange().getValues();
-  for (var i = 0; i < data.length; i++) {
-    if (data[i][0] == num) {
-      // Status column (index 2, 3rd column)
-      targetSheet.getRange(i+1, 3).setValue("Completed").setBackground("#00FF00");
-
-      // Admin data starts from startAdminColIndex (which is array index 20 for StatusCodeOfConduct)
-      // Spreadsheet columns are 1-indexed for getRange, so add 1 to array index
-      targetSheet.getRange(i+1, startAdminColIndex + 1).setValue(conducts); // Column U (index 20 in 0-indexed, 21 in 1-indexed)
-      targetSheet.getRange(i+1, startAdminColIndex + 2).setValue(CRDCcodes); // Column V (index 21 in 0-indexed, 22 in 1-indexed)
-      targetSheet.getRange(i+1, startAdminColIndex + 3).setValue(adminConsequence); // Column W (index 22 in 0-indexed, 23 in 1-indexed)
-      targetSheet.getRange(i+1, startAdminColIndex + 4).setValue(adminComments); // Column X (index 23 in 0-indexed, 24 in 1-indexed)
-      targetSheet.getRange(i+1, startAdminColIndex + 5).setValue(pbisReward); // Column Y (index 24 in 0-indexed, 25 in 1-indexed)
-      targetSheet.getRange(i+1, startAdminColIndex + 6).setValue(washingtonDC); // Column Z (index 25 in 0-indexed, 26 in 1-indexed)
-      break;
-    }
-  }
-}
-
-/**
- * Retrieves settings from the _Settings sheet.
- * @returns {Object} An object containing settings key-value pairs.
- */
-function getSettings() {
-  if(CACHE_SETTINGS) {
-    var settings = cache.get("_settings");
-  }
-
-  if(settings == undefined) {
-    var sheet = ss.getSheetByName(SETTINGS_SHEET);
-    if (!sheet) {
-      Logger.log("Settings sheet not found: " + SETTINGS_SHEET);
-      return {}; // Return empty object if sheet not found
-    }
-    var values = sheet.getDataRange().getValues();
-
-    var settings = {};
-    for (var i = 1; i < values.length; i++) { // Start from 1 to skip header row
-      var row = values[i];
-      if (row[0]) { // Ensure setting name exists
-        settings[row[0]] = row[1];
-      }
-    }
-
-    cache.put("_settings", settings, SETTINGS_CACHE_TTL);
-  }
-  return settings;
-}
-
-/**
- * Simple JSON cache service.
- * @returns {Object} Cache service with get and put methods.
- */
-function JSONCacheService() {
-  var _cache = CacheService.getPublicCache();
-  var _key_prefix = "_json#";
-
-  var get = function(k) {
-    var payload = _cache.get(_key_prefix+k);
-    if(payload !== null) { // Check for null explicitly, not undefined
-      return JSON.parse(payload);
-    }
-    return undefined; // Return undefined if not found
-  }
-
-  var put = function(k, d, t) {
-    _cache.put(_key_prefix+k, JSON.stringify(d), t);
-  }
-
-  return {
-    'get': get,
-    'put': put
-  }
-}
-
-// Utility function to test settings retrieval
-function testStuff() {
-  Logger.log(SETTINGS.ADMIN_EMAIL);
-}
-
-// Utility function to test merge (requires specific values for testing)
-function testMerge() {
-  // Replace with actual values for testing
-  var dummySubNumber = 1234567890;
-  // studentDisplay will be the full student name (from info[3] now)
-  var dummyStudentName = "John Doe";
-  // Ensure SETTINGS contains these IDs or hardcode for testing
-  // var dummyFolderID = SETTINGS.DESTINATION_FOLDER_ID;
-  // var dummyTemplateID = SETTINGS.TEMPLATE_ID;
-  // var dummySpreadsheetID = ss.getId();
-
-  // Example: If SETTINGS are not configured or for isolated testing
-  var dummyFolderID = "YOUR_DESTINATION_FOLDER_ID"; // Replace with a real folder ID for testing
-  var dummyTemplateID = "YOUR_TEMPLATE_DOC_ID"; // Replace with a real template Doc ID for testing
-  var dummySpreadsheetID = ss.getId(); // Use the active spreadsheet ID
-
-  try {
-    // The doMerge function is in merge.gs, which is implicitly available if merge.gs exists.
-    // Assuming doMerge is accessible, you'd call it like this:
-    // var doc = doMerge(dummySubNumber, dummyStudentName, dummyFolderID, dummyTemplateID, dummySpreadsheetID);
-    // Logger.log("Merge test successful. Document ID: " + doc.getId());
-    Logger.log("doMerge test not run directly. Please ensure merge.gs is in your Apps Script project.");
+    
+    const lastRow = sheet.getLastRow();
+    if (lastRow < 2) return [];
+    
+    const data = sheet.getRange(2, dropDownColIndex + 1, lastRow - 1, 1).getValues();
+    const names = data.map(row => row[0])
+      .filter(name => name && name.toString().trim())
+      .sort();
+    
+    cache.put('student_names', JSON.stringify(names), 1800);
+    return names;
   } catch (e) {
-    Logger.log("Merge test failed: " + e.message);
+    Logger.log('Error in getStudentNamesOptimized: ' + e.message);
+    throw e;
   }
+}
+
+function getStudentInfoByNameOptimized(lookupName) {
+  try {
+    const cache = CacheService.getScriptCache();
+    const cacheKey = `student_info_${lookupName}`;
+    const cachedInfo = cache.get(cacheKey);
+    
+    if (cachedInfo) {
+      return JSON.parse(cachedInfo);
+    }
+    
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName('StudentInfo');
+    if (!sheet) throw new Error('Sheet "StudentInfo" not found for lookup.');
+    
+    // FIXED: Use dynamic headers
+    const headers = getSheetHeaders('StudentInfo');
+    const lookupColIndex = getColumnIndex(headers, 'DropDown');
+    const nameColIndex = getColumnIndex(headers, 'StudentName');
+    const idColIndex = getColumnIndex(headers, 'StudentID');
+    const gradeColIndex = getColumnIndex(headers, 'GradeLevel');
+    const teamColIndex = getColumnIndex(headers, 'Team');
+
+    const data = sheet.getRange("A:E").getValues();
+    data.shift(); // Remove header row
+
+    for (const row of data) {
+      if (row[lookupColIndex] === lookupName) {
+        const studentInfo = {
+          studentName: row[nameColIndex] || '',
+          studentID: row[idColIndex] || '',
+          gradeLevel: row[gradeColIndex] || '',
+          team: row[teamColIndex] || ''
+        };
+        
+        cache.put(cacheKey, JSON.stringify(studentInfo), 3600);
+        return studentInfo;
+      }
+    }
+    
+    const notFoundInfo = { 
+      studentName: lookupName, 
+      studentID: 'NOT FOUND', 
+      gradeLevel: '', 
+      team: '' 
+    };
+    
+    cache.put(cacheKey, JSON.stringify(notFoundInfo), 300);
+    return notFoundInfo;
+  } catch (e) {
+    Logger.log(`Error in getStudentInfoByNameOptimized: ${e.message}`);
+    return { studentName: lookupName, studentID: 'ERROR', gradeLevel: '', team: '' };
+  }
+}
+
+// FIXED: Updated getSubmissionDataOptimized to use dynamic headers
+function getSubmissionDataOptimized(submissionId) {
+  try {
+    validateUserAccess();
+    
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheets = [
+      { sheet: ss.getSheetByName('Major'), name: 'Major' },
+      { sheet: ss.getSheetByName('Minor'), name: 'Minor' }
+    ];
+    
+    for (const { sheet, name } of sheets) {
+      if (!sheet) continue;
+      
+      const textFinder = sheet.createTextFinder(submissionId).matchEntireCell(true);
+      const foundRange = textFinder.findNext();
+      
+      if (foundRange) {
+        const rowNum = foundRange.getRow();
+        const headers = getSheetHeaders(name);
+        const data = sheet.getRange(rowNum, 1, 1, headers.length).getValues()[0];
+        
+        const result = {
+          data: data,
+          headers: headers, // FIXED: Include headers in response
+          sheet: name,
+          submissionId: submissionId,
+          retrievedAt: new Date().toISOString()
+        };
+        
+        return JSON.stringify(result);
+      }
+    }
+
+    throw new Error(`Submission ID '${submissionId}' was not found in either the Major or Minor sheet.`);
+    
+  } catch (e) {
+    Logger.log('Error in getSubmissionDataOptimized: ' + e.message);
+    return JSON.stringify({ error: e.message });
+  }
+}
+
+// --- FIXED: SECURE FORM PROCESSING WITH DYNAMIC HEADERS ---
+function processFormSecure(formObject) {
+  try {
+    const userEmail = validateUserAccess();
+    checkRateLimit(userEmail, 5, 10);
+    
+    const validation = validateFormData(formObject);
+    if (validation.errors.length > 0) {
+      throw new Error('Validation failed: ' + validation.errors.join(', '));
+    }
+    
+    const cleanData = { ...formObject, ...validation.sanitizedData };
+    
+    const studentDetails = getStudentInfoByNameOptimized(cleanData.studentName);
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheetName = cleanData.referralType;
+    const sheet = ss.getSheetByName(sheetName);
+    
+    if (!sheet) {
+      throw new Error(`Sheet "${sheetName}" not found.`);
+    }
+
+    // FIXED: Process infractions with proper handling to prevent duplication
+    let infractions = '';
+    if (cleanData.MinorInfractions) {
+      infractions = Array.isArray(cleanData.MinorInfractions) ? 
+        cleanData.MinorInfractions.join(', ') : cleanData.MinorInfractions;
+    } else if (cleanData.MajorInfractions) {
+      infractions = Array.isArray(cleanData.MajorInfractions) ? 
+        cleanData.MajorInfractions.join(', ') : cleanData.MajorInfractions;
+    }
+    
+    if (cleanData.infractionOtherText && cleanData.infractionOtherText.trim()) {
+      infractions = infractions.replace(/\bOther\b/, `Other: ${sanitizeInput(cleanData.infractionOtherText)}`);
+    }
+
+    // FIXED: Process actions taken with proper handling
+    let actionsTaken = '';
+    if (cleanData.MinorActionsTaken) {
+      actionsTaken = Array.isArray(cleanData.MinorActionsTaken) ? 
+        cleanData.MinorActionsTaken.join(', ') : cleanData.MinorActionsTaken;
+    } else if (cleanData.MajorActionsTaken) {
+      actionsTaken = Array.isArray(cleanData.MajorActionsTaken) ? 
+        cleanData.MajorActionsTaken.join(', ') : cleanData.MajorActionsTaken;
+    }
+    
+    if (cleanData.actionsTakenOtherText && cleanData.actionsTakenOtherText.trim()) {
+      actionsTaken = actionsTaken.replace(/\bOther\b/, `Other: ${sanitizeInput(cleanData.actionsTakenOtherText)}`);
+    }
+
+    // FIXED: Use dynamic headers
+    const headers = getSheetHeaders(sheetName);
+    const submissionId = `REF-${Date.now()}`;
+
+    const newRow = headers.map(header => {
+      switch(header) {
+        case 'StudentName': return studentDetails.studentName;
+        case 'StudentID': return studentDetails.studentID;
+        case 'GradeLevel': return studentDetails.gradeLevel;
+        case 'Team': return studentDetails.team;
+        case 'StaffName': return cleanData.staffName;
+        case 'StaffEmail': return cleanData.staffEmail;
+        case 'DateOfIncident': return cleanData.dateOfIncident;
+        case 'TimeOfIncident': return cleanData.timeOfIncident || '';
+        case 'Location': return cleanData.Location;
+        case 'DescriptionOfInfraction': return cleanData.descriptionOfInfraction;
+        // FIXED: Home communication logic - only set "Yes" if checkbox is actually checked for Major referrals
+        case 'HomeCommunications': 
+          if (cleanData.referralType === 'Major') {
+            return cleanData.HomeCommunications === 'on' ? 'Yes' : 'No';
+          } else {
+            // For minor referrals, leave blank instead of "No"
+            return '';
+          }
+        case 'DetailsOfCommunication': return cleanData.DetailsOfCommunication || '';
+        case 'Comments': return cleanData.Comments || '';
+        // FIXED: Process perceived motivation properly
+        case 'PerceivedMotivation': 
+          return Array.isArray(cleanData.PerceivedMotivation) ? 
+            cleanData.PerceivedMotivation.join(', ') : (cleanData.PerceivedMotivation || '');
+        case 'Infraction': return infractions;
+        case 'ActionsTaken': return actionsTaken;
+        case 'SubmissionNumber': return submissionId;
+        case 'Timestamp': return new Date();
+        case 'Status': return 'Pending Admin Review';
+        case 'DayOfWeek': return new Date(cleanData.dateOfIncident).toLocaleString('en-US', { weekday: 'long' });
+        case 'SubmittedBy': return userEmail;
+        case 'DocURL': return '';
+        case 'RewardTripPts': return '';
+        case 'DCPoints': return '';
+        default: return '';
+      }
+    });
+
+    sheet.appendRow(newRow);
+    
+    const cache = CacheService.getScriptCache();
+    cache.remove(`student_info_${cleanData.studentName}`);
+
+    try {
+      sendNotificationEmail(submissionId, studentDetails, cleanData, sheetName, userEmail);
+    } catch (emailError) {
+      Logger.log('Email notification failed: ' + emailError.message);
+    }
+    
+    Logger.log(`Successful submission: ${submissionId} by ${userEmail} for student ${studentDetails.studentName}`);
+    
+    return `Success! Referral ${submissionId} has been submitted and administrator has been notified.`;
+    
+  } catch(error) {
+    Logger.log('Error in processFormSecure: ' + error.message);
+    Logger.log('User: ' + Session.getActiveUser().getEmail());
+    Logger.log('Data: ' + JSON.stringify(formObject));
+    throw error;
+  }
+}
+
+function sendNotificationEmail(submissionId, studentDetails, formData, referralType, submitterEmail) {
+  try {
+    const webAppUrl = ScriptApp.getService().getUrl();
+    const adminLink = `${webAppUrl}?page=admin&id=${submissionId}`;
+    
+    const infractions = formData.MinorInfractions || formData.MajorInfractions || 'Not specified';
+    
+    const emailSubject = `🚨 New ${referralType} Referral: ${studentDetails.studentName} (${submissionId})`;
+    
+    const emailBody = `
+A new ${referralType} discipline referral has been submitted.
+
+STUDENT INFORMATION:
+• Name: ${studentDetails.studentName}
+• ID: ${studentDetails.studentID}
+• Grade: ${studentDetails.gradeLevel}
+• Team: ${studentDetails.team}
+
+INCIDENT DETAILS:
+• Date: ${formData.dateOfIncident}
+• Time: ${formData.timeOfIncident || 'Not specified'}
+• Location: ${formData.Location}
+• Submitted by: ${formData.staffName} (${submitterEmail})
+
+INFRACTIONS:
+${infractions}
+
+DESCRIPTION:
+${formData.descriptionOfInfraction}
+
+PRIORITY: ${referralType === 'Major' ? 'HIGH' : 'STANDARD'}
+
+To review and process this referral, click here:
+${adminLink}
+
+Submission ID: ${submissionId}
+Submitted: ${new Date().toLocaleString()}
+
+---
+This is an automated notification from the School Discipline System.
+    `;
+
+    MailApp.sendEmail({
+      to: ADMIN_EMAIL,
+      subject: emailSubject,
+      body: emailBody
+    });
+    
+  } catch (error) {
+    Logger.log('Email notification error: ' + error.message);
+    throw error;
+  }
+}
+
+// --- FIXED: PDF CREATION WITH ADMINISTRATOR'S GMAIL ---
+function createEmailDraftWithPDF(referralData) {
+  try {
+    const userEmail = validateUserAccess();
+    
+    Logger.log(`Creating PDF for submission: ${referralData.submissionNumber}`);
+    
+    const submissionResponse = getSubmissionDataOptimized(referralData.submissionNumber);
+    const submissionData = JSON.parse(submissionResponse);
+    
+    if (submissionData.error) {
+      throw new Error(submissionData.error);
+    }
+    
+    // FIXED: Use dynamic headers instead of hard-coded array
+    const headers = submissionData.headers;
+    const data = submissionData.data;
+    const fullSubmissionData = mapDataToHeaders(headers, data);
+    
+    Logger.log('Full submission data extracted successfully');
+    
+    const tempDoc = DocumentApp.create(`TEMP_${referralData.submissionNumber}_${Date.now()}`);
+    const body = tempDoc.getBody();
+    
+    // Style the temporary document
+    const headerStyle = {};
+    headerStyle[DocumentApp.Attribute.FONT_FAMILY] = 'Arial';
+    headerStyle[DocumentApp.Attribute.FONT_SIZE] = 16;
+    headerStyle[DocumentApp.Attribute.BOLD] = true;
+    headerStyle[DocumentApp.Attribute.FOREGROUND_COLOR] = '#d9534f';
+    
+    const normalStyle = {};
+    normalStyle[DocumentApp.Attribute.FONT_FAMILY] = 'Arial';
+    normalStyle[DocumentApp.Attribute.FONT_SIZE] = 10;
+    
+    const labelStyle = {};
+    labelStyle[DocumentApp.Attribute.FONT_FAMILY] = 'Arial';
+    labelStyle[DocumentApp.Attribute.FONT_SIZE] = 10;
+    labelStyle[DocumentApp.Attribute.BOLD] = true;
+    
+    body.clear();
+    const header = body.appendParagraph('DISCIPLINE REFERRAL REPORT');
+    header.setAttributes(headerStyle);
+    header.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+    
+    body.appendParagraph('').setSpacingAfter(10);
+    
+    body.appendParagraph(`Student: ${referralData.studentName}`).setAttributes(normalStyle);
+    body.appendParagraph(`Submission ID: ${referralData.submissionNumber}`).setAttributes(normalStyle);
+    body.appendParagraph(`Date of Incident: ${referralData.dateOfIncident}`).setAttributes(normalStyle);
+    body.appendParagraph(`Location: ${referralData.location}`).setAttributes(normalStyle);
+    body.appendParagraph(`Staff Member: ${referralData.staffName}`).setAttributes(normalStyle);
+    body.appendParagraph(`Type: ${referralData.referralType} Referral`).setAttributes(normalStyle);
+    
+    body.appendParagraph('').setSpacingAfter(10);
+    
+    const infractionsLabel = body.appendParagraph('INFRACTIONS:');
+    infractionsLabel.setAttributes(labelStyle);
+    body.appendParagraph(referralData.infraction || fullSubmissionData.Infraction || 'Not specified').setAttributes(normalStyle);
+    
+    body.appendParagraph('').setSpacingAfter(10);
+    
+    const descriptionLabel = body.appendParagraph('DESCRIPTION:');
+    descriptionLabel.setAttributes(labelStyle);
+    body.appendParagraph(referralData.description || fullSubmissionData.DescriptionOfInfraction || 'Not provided').setAttributes(normalStyle);
+    
+    if (fullSubmissionData.AdminConsequence) {
+      body.appendParagraph('').setSpacingAfter(10);
+      const adminActionsLabel = body.appendParagraph('ADMINISTRATIVE CONSEQUENCES:');
+      adminActionsLabel.setAttributes(labelStyle);
+      body.appendParagraph(fullSubmissionData.AdminConsequence).setAttributes(normalStyle);
+    }
+    
+    if (referralData.adminComments || fullSubmissionData.AdminComments) {
+      body.appendParagraph('').setSpacingAfter(10);
+      const adminCommentsLabel = body.appendParagraph('ADMINISTRATIVE COMMENTS:');
+      adminCommentsLabel.setAttributes(labelStyle);
+      body.appendParagraph(referralData.adminComments || fullSubmissionData.AdminComments).setAttributes(normalStyle);
+    }
+    
+    if (fullSubmissionData.RewardTripPts && fullSubmissionData.RewardTripPts !== '') {
+      body.appendParagraph('').setSpacingAfter(10);
+      const rewardLabel = body.appendParagraph('REWARD TRIP POINTS DEDUCTED:');
+      rewardLabel.setAttributes(labelStyle);
+      body.appendParagraph(fullSubmissionData.RewardTripPts + ' points').setAttributes(normalStyle);
+    }
+    
+    if (fullSubmissionData.DCPoints && fullSubmissionData.DCPoints !== '') {
+      body.appendParagraph('').setSpacingAfter(10);
+      const dcLabel = body.appendParagraph('DC TRIP POINTS DEDUCTED:');
+      dcLabel.setAttributes(labelStyle);
+      body.appendParagraph(fullSubmissionData.DCPoints + ' points').setAttributes(normalStyle);
+    }
+    
+    body.appendParagraph('').setSpacingAfter(10);
+    body.appendParagraph(`Generated: ${new Date().toLocaleString()}`).setAttributes(normalStyle);
+    
+    tempDoc.saveAndClose();
+    
+    Logger.log('Temporary document created and saved');
+    
+    const tempFile = DriveApp.getFileById(tempDoc.getId());
+    const pdfBlob = tempFile.getAs('application/pdf');
+    pdfBlob.setName(`Discipline_Referral_${referralData.submissionNumber}.pdf`);
+    
+    Logger.log('PDF blob created');
+    
+    const subject = `Discipline Referral Report - ${referralData.studentName} (${referralData.submissionNumber})`;
+    const body_text = `
+Dear Colleague,
+
+Please find attached the discipline referral report for ${referralData.studentName}.
+
+Summary:
+• Student: ${referralData.studentName}
+• Submission ID: ${referralData.submissionNumber}
+• Date of Incident: ${referralData.dateOfIncident}
+• Type: ${referralData.referralType} Referral
+• Location: ${referralData.location}
+
+This report has been generated from the school discipline tracking system.
+
+Best regards,
+${userEmail}
+    `;
+    
+    // FIXED: Create Gmail draft in the administrator's account using Gmail API
+    try {
+      const draft = GmailApp.createDraft(
+        '', // No recipients - admin will add them
+        subject,
+        body_text,
+        {
+          attachments: [pdfBlob],
+          from: userEmail // FIXED: Specify sender as current user
+        }
+      );
+      
+      Logger.log('Gmail draft created with attachment in administrator account');
+    } catch (gmailError) {
+      Logger.log('Gmail draft creation error: ' + gmailError.message);
+      // Fallback: Try without the 'from' parameter
+      const draft = GmailApp.createDraft(
+        '',
+        subject,
+        body_text,
+        {
+          attachments: [pdfBlob]
+        }
+      );
+      Logger.log('Gmail draft created with attachment (fallback method)');
+    }
+    
+    DriveApp.getFileById(tempDoc.getId()).setTrashed(true);
+    
+    Logger.log(`Email draft created with PDF for ${referralData.submissionNumber}`);
+    
+    return 'Email draft with PDF attachment created successfully in your Gmail drafts.';
+    
+  } catch (error) {
+    Logger.log('Error creating email draft with PDF: ' + error.message);
+    Logger.log('Error stack: ' + error.stack);
+    throw new Error(`Failed to create PDF: ${error.message}`);
+  }
+}
+
+// --- GOOGLE DOC EXPORT FUNCTIONALITY ---
+function createGoogleDocExport(formData, submissionData) {
+  try {
+    const folder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
+    
+    const docTitle = `Discipline Referral - ${submissionData.StudentName} - ${submissionData.SubmissionNumber}`;
+    
+    const doc = DocumentApp.create(docTitle);
+    const body = doc.getBody();
+    
+    const file = DriveApp.getFileById(doc.getId());
+    file.moveTo(folder);
+    
+    const headerStyle = {};
+    headerStyle[DocumentApp.Attribute.FONT_FAMILY] = 'Arial';
+    headerStyle[DocumentApp.Attribute.FONT_SIZE] = 18;
+    headerStyle[DocumentApp.Attribute.BOLD] = true;
+    headerStyle[DocumentApp.Attribute.FOREGROUND_COLOR] = '#d9534f';
+    
+    const normalStyle = {};
+    normalStyle[DocumentApp.Attribute.FONT_FAMILY] = 'Arial';
+    normalStyle[DocumentApp.Attribute.FONT_SIZE] = 11;
+    
+    const labelStyle = {};
+    labelStyle[DocumentApp.Attribute.FONT_FAMILY] = 'Arial';
+    labelStyle[DocumentApp.Attribute.FONT_SIZE] = 11;
+    labelStyle[DocumentApp.Attribute.BOLD] = true;
+    
+    body.clear();
+    
+    const header = body.appendParagraph('DISCIPLINE REFERRAL REPORT');
+    header.setAttributes(headerStyle);
+    header.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+    
+    body.appendParagraph('').setSpacingAfter(10);
+    
+    body.appendParagraph(`Submission ID: ${submissionData.SubmissionNumber}`).setAttributes(normalStyle);
+    body.appendParagraph(`Generated: ${new Date().toLocaleString()}`).setAttributes(normalStyle);
+    body.appendParagraph(`Status: ${submissionData.Status || 'Completed'}`).setAttributes(normalStyle);
+    
+    body.appendParagraph('').setSpacingAfter(15);
+    
+    const studentHeader = body.appendParagraph('STUDENT INFORMATION');
+    studentHeader.setAttributes(labelStyle);
+    studentHeader.setSpacingBefore(10);
+    
+    body.appendParagraph(`Name: ${submissionData.StudentName}`).setAttributes(normalStyle);
+    body.appendParagraph(`ID: ${submissionData.StudentID}`).setAttributes(normalStyle);
+    body.appendParagraph(`Grade: ${submissionData.GradeLevel}`).setAttributes(normalStyle);
+    body.appendParagraph(`Team: ${submissionData.Team}`).setAttributes(normalStyle);
+    
+    body.appendParagraph('').setSpacingAfter(15);
+    
+    const incidentHeader = body.appendParagraph('INCIDENT INFORMATION');
+    incidentHeader.setAttributes(labelStyle);
+    incidentHeader.setSpacingBefore(10);
+    
+    body.appendParagraph(`Date of Incident: ${submissionData.DateOfIncident}`).setAttributes(normalStyle);
+    body.appendParagraph(`Time of Incident: ${submissionData.TimeOfIncident || 'Not specified'}`).setAttributes(normalStyle);
+    body.appendParagraph(`Day of Week: ${submissionData.DayOfWeek}`).setAttributes(normalStyle);
+    body.appendParagraph(`Location: ${submissionData.Location}`).setAttributes(normalStyle);
+    body.appendParagraph(`Referring Staff: ${submissionData.StaffName} (${submissionData.StaffEmail})`).setAttributes(normalStyle);
+    
+    body.appendParagraph('').setSpacingAfter(15);
+    
+    const infractionHeader = body.appendParagraph('INFRACTION DETAILS');
+    infractionHeader.setAttributes(labelStyle);
+    infractionHeader.setSpacingBefore(10);
+    
+    body.appendParagraph(`Type: ${formData.sheetName || 'Not specified'} Referral`).setAttributes(normalStyle);
+    body.appendParagraph(`Infractions: ${submissionData.Infraction || 'Not specified'}`).setAttributes(normalStyle);
+    
+    const descriptionLabel = body.appendParagraph('Description:');
+    descriptionLabel.setAttributes(labelStyle);
+    const descriptionText = body.appendParagraph(submissionData.DescriptionOfInfraction || 'Not provided');
+    descriptionText.setAttributes(normalStyle);
+    descriptionText.setSpacingAfter(10);
+    
+    body.appendParagraph(`Previous Actions Taken: ${submissionData.ActionsTaken || 'None specified'}`).setAttributes(normalStyle);
+    body.appendParagraph(`Perceived Motivation: ${submissionData.PerceivedMotivation || 'Not specified'}`).setAttributes(normalStyle);
+    
+    body.appendParagraph('').setSpacingAfter(15);
+    
+    const communicationHeader = body.appendParagraph('COMMUNICATION');
+    communicationHeader.setAttributes(labelStyle);
+    communicationHeader.setSpacingBefore(10);
+    
+    body.appendParagraph(`Home Communication: ${submissionData.HomeCommunications || 'No'}`).setAttributes(normalStyle);
+    if (submissionData.DetailsOfCommunication) {
+      body.appendParagraph(`Communication Details: ${submissionData.DetailsOfCommunication}`).setAttributes(normalStyle);
+    }
+    
+    if (formData.ParentContactDate || formData.ParentContactMethod) {
+      body.appendParagraph(`Admin Parent Contact Date: ${formData.ParentContactDate || 'Not specified'}`).setAttributes(normalStyle);
+      body.appendParagraph(`Admin Contact Method: ${formData.ParentContactMethod || 'Not specified'}`).setAttributes(normalStyle);
+      if (formData.ParentContactNotes) {
+        body.appendParagraph(`Admin Contact Notes: ${formData.ParentContactNotes}`).setAttributes(normalStyle);
+      }
+    }
+    
+    body.appendParagraph('').setSpacingAfter(15);
+    
+    const adminHeader = body.appendParagraph('ADMINISTRATIVE ACTION');
+    adminHeader.setAttributes(labelStyle);
+    adminHeader.setSpacingBefore(10);
+    
+    if (formData.CodeOfConduct) {
+      body.appendParagraph(`Code of Conduct Violations: ${formData.CodeOfConduct}`).setAttributes(normalStyle);
+    }
+    
+    if (formData.CRDCReporting) {
+      body.appendParagraph(`Ohio State Reporting Codes: ${formData.CRDCReporting}`).setAttributes(normalStyle);
+    }
+    
+    if (formData.AdminConsequence) {
+      body.appendParagraph(`Administrative Consequences: ${formData.AdminConsequence}`).setAttributes(normalStyle);
+    }
+    
+    if (formData.AdminComments) {
+      const adminCommentsLabel = body.appendParagraph('Administrator Comments:');
+      adminCommentsLabel.setAttributes(labelStyle);
+      const adminCommentsText = body.appendParagraph(formData.AdminComments);
+      adminCommentsText.setAttributes(normalStyle);
+      adminCommentsText.setSpacingAfter(10);
+    }
+    
+    if (formData.RewardTripPts !== undefined && formData.RewardTripPts !== '') {
+      body.appendParagraph(`Reward Trip Points Deducted: ${formData.RewardTripPts}`).setAttributes(normalStyle);
+    }
+    
+    if (formData.DCPoints !== undefined && formData.DCPoints !== '') {
+      body.appendParagraph(`DC Trip Points Deducted: ${formData.DCPoints}`).setAttributes(normalStyle);
+    }
+    
+    body.appendParagraph('').setSpacingAfter(15);
+    
+    if (submissionData.Comments) {
+      const commentsHeader = body.appendParagraph('ADDITIONAL COMMENTS');
+      commentsHeader.setAttributes(labelStyle);
+      commentsHeader.setSpacingBefore(10);
+      
+      const commentsText = body.appendParagraph(submissionData.Comments);
+      commentsText.setAttributes(normalStyle);
+    }
+    
+    body.appendParagraph('').setSpacingAfter(20);
+    const footer = body.appendParagraph('--- End of Discipline Referral Report ---');
+    footer.setAttributes(normalStyle);
+    footer.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+    
+    doc.saveAndClose();
+    
+    return doc.getUrl();
+    
+  } catch (error) {
+    Logger.log('Error creating Google Doc: ' + error.message);
+    throw error;
+  }
+}
+
+// --- FIXED: SECURE RECORD UPDATES WITH DYNAMIC HEADERS ---
+function updateRecordSecure(formObject) {
+  try {
+    const userEmail = validateUserAccess();
+    checkRateLimit(userEmail, 10, 5);
+    
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheetName = formObject.sheetName;
+    const sheet = ss.getSheetByName(sheetName);
+    
+    if (!sheet) {
+      throw new Error(`Sheet "${sheetName}" not found.`);
+    }
+
+    const textFinder = sheet.createTextFinder(formObject.submissionNumber).matchEntireCell(true);
+    const foundRange = textFinder.findNext();
+    
+    if (!foundRange) {
+      throw new Error(`Submission ID ${formObject.submissionNumber} not found.`);
+    }
+    
+    const rowNum = foundRange.getRow();
+    // FIXED: Use dynamic headers
+    const headers = getSheetHeaders(sheetName);
+    
+    const currentRowData = sheet.getRange(rowNum, 1, 1, headers.length).getValues()[0];
+    const submissionData = mapDataToHeaders(headers, currentRowData);
+    
+    const sanitizedFormObject = {};
+    Object.keys(formObject).forEach(key => {
+      if (typeof formObject[key] === 'string') {
+        sanitizedFormObject[key] = sanitizeInput(formObject[key]);
+        
+        if (FIELD_LIMITS[key] && sanitizedFormObject[key].length > FIELD_LIMITS[key]) {
+          throw new Error(`${key} exceeds maximum length of ${FIELD_LIMITS[key]} characters`);
+        }
+      } else {
+        sanitizedFormObject[key] = formObject[key];
+      }
+    });
+
+    if (sanitizedFormObject.adminConsequenceOtherText && sanitizedFormObject.adminConsequenceOtherText.trim()) {
+      sanitizedFormObject.AdminConsequence = (sanitizedFormObject.AdminConsequence || '')
+        .replace('Other', `Other: ${sanitizedFormObject.adminConsequenceOtherText}`);
+    }
+
+    const updatedBy = userEmail;
+    const updatedAt = new Date();
+
+    let docURL = '';
+    try {
+      const exportData = { ...submissionData, ...sanitizedFormObject };
+      docURL = createGoogleDocExport(sanitizedFormObject, exportData);
+      Logger.log(`Google Doc created: ${docURL}`);
+    } catch (docError) {
+      Logger.log('Google Doc creation failed: ' + docError.message);
+    }
+
+    // FIXED: Update spreadsheet using dynamic header mapping
+    headers.forEach((header, index) => {
+      const col = index + 1;
+      let valueToSet;
+
+      switch(header) {
+        case 'CodeOfConduct':
+          valueToSet = sanitizedFormObject.CodeOfConduct;
+          break;
+        case 'CRDCReporting':
+          valueToSet = sanitizedFormObject.CRDCReporting;
+          break;
+        case 'AdminConsequence':
+          valueToSet = sanitizedFormObject.AdminConsequence;
+          break;
+        case 'AdminComments':
+          valueToSet = sanitizedFormObject.AdminComments;
+          break;
+        case 'RewardTripPts':
+          valueToSet = sanitizedFormObject.RewardTripPts;
+          break;
+        case 'DCPoints':
+          valueToSet = sanitizedFormObject.DCPoints;
+          break;
+        case 'Status':
+          valueToSet = 'Completed';
+          break;
+        case 'UpdatedBy':
+          valueToSet = updatedBy;
+          break;
+        case 'UpdatedAt':
+          valueToSet = updatedAt;
+          break;
+        case 'ParentContactDate':
+          valueToSet = sanitizedFormObject.ParentContactDate;
+          break;
+        case 'ParentContactMethod':
+          valueToSet = sanitizedFormObject.ParentContactMethod;
+          break;
+        case 'ParentContactNotes':
+          valueToSet = sanitizedFormObject.ParentContactNotes;
+          break;
+        case 'DocURL':
+          valueToSet = docURL;
+          break;
+      }
+      
+      if (valueToSet !== undefined && valueToSet !== null && valueToSet !== '') {
+        sheet.getRange(rowNum, col).setValue(valueToSet);
+      }
+    });
+    
+    Logger.log(`Successful update: ${sanitizedFormObject.submissionNumber} by ${userEmail}`);
+    
+    try {
+      sendCompletionEmail(sanitizedFormObject, updatedBy, docURL);
+    } catch (emailError) {
+      Logger.log('Completion email failed: ' + emailError.message);
+    }
+    
+    return `Success! Referral ${sanitizedFormObject.submissionNumber} has been updated and marked as completed. Google Doc created: ${docURL}`;
+    
+  } catch (e) {
+    Logger.log('Error in updateRecordSecure: ' + e.message);
+    Logger.log('User: ' + Session.getActiveUser().getEmail());
+    throw e;
+  }
+}
+
+function sendCompletionEmail(formData, adminEmail, docURL) {
+  try {
+    const emailSubject = `✅ Referral Completed: ${formData.submissionNumber}`;
+    const emailBody = `
+The discipline referral has been processed and completed.
+
+Submission ID: ${formData.submissionNumber}
+Completed by: ${adminEmail}
+Completed at: ${new Date().toLocaleString()}
+
+Administrative Comments: ${formData.AdminComments || 'None'}
+
+Google Doc Report: ${docURL}
+
+This referral is now closed.
+    `;
+
+    MailApp.sendEmail({
+      to: ADMIN_EMAIL,
+      subject: emailSubject,
+      body: emailBody
+    });
+    
+  } catch (error) {
+    Logger.log('Completion email error: ' + error.message);
+  }
+}
+
+// --- AUTO-SAVE FUNCTIONALITY ---
+function autoSaveRecord(formObject) {
+  try {
+    const userEmail = validateUserAccess();
+    
+    const cache = CacheService.getScriptCache();
+    const cacheKey = `draft_${formObject.submissionNumber}_${userEmail}`;
+    
+    cache.put(cacheKey, JSON.stringify(formObject), 3600);
+    
+    Logger.log(`Auto-saved draft for ${formObject.submissionNumber} by ${userEmail}`);
+    
+    return 'Draft saved successfully';
+    
+  } catch (error) {
+    Logger.log('Auto-save error: ' + error.message);
+    throw error;
+  }
+}
+
+// --- ERROR HANDLING & MONITORING ---
+function logSystemError(errorMessage, userEmail, functionName) {
+  try {
+    const errorLog = {
+      timestamp: new Date().toISOString(),
+      user: userEmail,
+      function: functionName,
+      error: errorMessage,
+      userAgent: Session.getActiveUser().getEmail()
+    };
+    
+    Logger.log('System Error: ' + JSON.stringify(errorLog));
+    
+  } catch (e) {
+    Logger.log('Error logging failed: ' + e.message);
+  }
+}
+
+// --- LEGACY COMPATIBILITY FUNCTIONS ---
+function getStudentNames() {
+  return getStudentNamesOptimized();
+}
+
+function getStudentInfoByName(lookupName) {
+  return getStudentInfoByNameOptimized(lookupName);
+}
+
+function getSubmissionData(submissionId) {
+  return getSubmissionDataOptimized(submissionId);
+}
+
+function processForm(formObject) {
+  return processFormSecure(formObject);
+}
+
+function updateRecord(formObject) {
+  return updateRecordSecure(formObject);
 }
