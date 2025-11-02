@@ -1,4 +1,4 @@
-var CACHE_PROP = CacheService.getPublicCache();
+var CACHE_PROP = CacheService.getScriptCache();
 var ss = SpreadsheetApp.getActiveSpreadsheet();
 var SETTINGS_SHEET = "_Settings";
 var CACHE_SETTINGS = false;
