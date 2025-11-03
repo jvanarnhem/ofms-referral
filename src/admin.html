@@ -1,161 +1,36 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body {
-            background-color: #f4f7f6;
-        }
-
-        .container {
-            max-width: 900px;
-            background-color: #ffffff;
-            padding: 2.5rem;
-            border-radius: 10px;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
-            margin-top: 2rem;
-            margin-bottom: 2rem;
-        }
-
-        .form-header h1 {
-            color: #d9534f;
-        }
-
-        .btn-danger {
-            background-color: #d9534f;
-            border-color: #d9534f;
-        }
-
-        .staff-section {
-            border: 1px solid #dee2e6;
-            padding: 1.5rem;
-            border-radius: 8px;
-            margin-bottom: 2rem;
-        }
-
-        .admin-section {
-            border: 2px solid #d9534f;
-            background-color: #fcf8f7;
-            padding: 1.5rem;
-            border-radius: 8px;
-        }
-
-        .form-control[readonly],
-        textarea[readonly] {
-            background-color: #e9ecef;
-            cursor: not-allowed;
-        }
-
-        #loader {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 50vh;
-        }
-
-        #adminForm {
-            display: none;
-        }
-
-        .checkbox-group .form-check {
-            display: inline-block;
-            width: 48%;
-        }
-
-        .radio-group .form-check {
-            display: inline-block;
-            margin-right: 1rem;
-        }
-
-        .other-text,
-        .hidden-section {
-            display: none;
-        }
-
-        .validation-error {
-            border-color: #dc3545 !important;
-            box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
-        }
-
-        .error-message {
-            color: #dc3545;
-            font-size: 0.875em;
-            margin-top: 0.25rem;
-        }
-
-        .progress-container {
-            margin-bottom: 1rem;
-        }
-
-        .autosave-status {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 9999;
-            padding: 0.5rem 1rem;
-            font-size: 0.875rem;
-            border-radius: 4px;
-        }
-
-        .submission-summary {
-            background-color: #e7f3ff;
-            border: 1px solid #b3d7ff;
-            border-radius: 8px;
-            padding: 1rem;
-            margin-bottom: 1rem;
-        }
-
-        .quick-actions {
-            position: sticky;
-            top: 20px;
-            background: white;
-            padding: 1rem;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            margin-bottom: 1rem;
-        }
-
-        .field-highlight {
-            background-color: #fff3cd;
-            border-left: 4px solid #ffc107;
-            padding-left: 0.75rem;
-        }
-
-        .reward-trip-section {
-            border: 1px solid #dee2e6;
-            background-color: #f8f9fa;
-            padding: 1.5rem;
-            border-radius: 8px;
-            margin-top: 1rem;
-        }
-
-        .radio-button-group {
-            display: flex;
-            gap: 0.5rem;
-            flex-wrap: wrap;
-        }
-
-        .radio-button-group .form-check {
-            margin: 0;
-        }
-
-        .completed-warning {
-            background-color: #fff3cd;
-            border: 1px solid #ffc107;
-            border-radius: 8px;
-            padding: 1.5rem;
-            margin-bottom: 1rem;
-        }
-
-        .completed-warning h5 {
-            color: #664d03;
-        }
+        body { background-color: #f4f7f6; } 
+        .container { max-width: 900px; background-color: #ffffff; padding: 2.5rem; border-radius: 10px; box-shadow: 0 0 20px rgba(0,0,0,0.05); margin-top: 2rem; margin-bottom: 2rem; } 
+        .form-header h1 { color: #d9534f; } 
+        .btn-danger { background-color: #d9534f; border-color: #d9534f; } 
+        .staff-section { border: 1px solid #dee2e6; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem; } 
+        .admin-section { border: 2px solid #d9534f; background-color: #fcf8f7; padding: 1.5rem; border-radius: 8px; } 
+        .form-control[readonly], textarea[readonly] { background-color: #e9ecef; cursor: not-allowed; } 
+        #loader { display: flex; justify-content: center; align-items: center; height: 50vh; } 
+        #adminForm { display: none; } 
+        .checkbox-group .form-check { display: inline-block; width: 48%; } 
+        .radio-group .form-check { display: inline-block; margin-right: 1rem; } 
+        .other-text, .hidden-section { display: none; }
+        .validation-error { border-color: #dc3545 !important; box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25); }
+        .error-message { color: #dc3545; font-size: 0.875em; margin-top: 0.25rem; }
+        .progress-container { margin-bottom: 1rem; }
+        .autosave-status { position: fixed; top: 20px; right: 20px; z-index: 9999; padding: 0.5rem 1rem; font-size: 0.875rem; border-radius: 4px; }
+        .submission-summary { background-color: #e7f3ff; border: 1px solid #b3d7ff; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; }
+        .quick-actions { position: sticky; top: 20px; background: white; padding: 1rem; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 1rem; }
+        .field-highlight { background-color: #fff3cd; border-left: 4px solid #ffc107; padding-left: 0.75rem; }
+        .reward-trip-section { border: 1px solid #dee2e6; background-color: #f8f9fa; padding: 1.5rem; border-radius: 8px; margin-top: 1rem; }
+        .radio-button-group { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+        .radio-button-group .form-check { margin: 0; }
+        .completed-warning { background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 1.5rem; margin-bottom: 1rem; }
+        .completed-warning h5 { color: #664d03; }
     </style>
 </head>
-
 <body>
     <div class="container">
         <div id="loader" class="text-center">
@@ -197,7 +72,7 @@
             <input type="hidden" id="submissionNumber" name="submissionNumber">
             <input type="hidden" id="sheetName" name="sheetName">
             <input type="hidden" id="allowReprocess" name="allowReprocess" value="false">
-
+            
             <div class="form-header text-center mb-4">
                 <h1>Administrator Referral Review</h1>
                 <p class="lead">Review staff submission and complete administrative fields.</p>
@@ -206,8 +81,7 @@
             <!-- Completed Warning Banner -->
             <div id="completedWarning" class="completed-warning" style="display: none;">
                 <h5>⚠️ This referral has already been completed</h5>
-                <p class="mb-0">This referral was processed on <span id="completionInfo"></span>. You can view the data
-                    below, but modifications will require confirmation.</p>
+                <p class="mb-0">This referral was processed on <span id="completionInfo"></span>. You can view the data below, but modifications will require confirmation.</p>
             </div>
 
             <!-- Quick Actions Panel -->
@@ -292,8 +166,7 @@
                     </div>
                     <div class="col-12">
                         <label class="form-label">Description of Infraction(s)</label>
-                        <textarea class="form-control field-highlight" id="DescriptionOfInfraction" rows="3"
-                            readonly></textarea>
+                        <textarea class="form-control field-highlight" id="DescriptionOfInfraction" rows="3" readonly></textarea>
                     </div>
                     <div class="col-12">
                         <label class="form-label">Previous Action(s) Taken</label>
@@ -322,18 +195,17 @@
                 <h4>Administrative Action</h4>
                 <div class="row g-3 mt-2">
                     <div id="majorAdminActions" class="hidden-section"></div>
-
+                    
                     <div class="col-12">
                         <label for="adminComments" class="form-label">Administrator Comments</label>
-                        <textarea class="form-control" id="adminComments" name="AdminComments" rows="4" maxlength="2000"
-                            placeholder="Document administrative decisions, parent contact, and follow-up actions..."></textarea>
+                        <textarea class="form-control" id="adminComments" name="AdminComments" rows="4" maxlength="2000" placeholder="Document administrative decisions, parent contact, and follow-up actions..."></textarea>
                         <div class="form-text">Characters remaining: <span id="adminCommentsCounter">2000</span></div>
                         <div class="error-message" id="adminComments-error"></div>
                     </div>
-
+                    
                     <!-- Reward Trip Sections -->
                     <div id="rewardTripSection" class="col-12 mt-3"></div>
-
+                    
                     <!-- Parent Contact Tracking -->
                     <div class="col-12 mt-3">
                         <div class="card">
@@ -344,8 +216,7 @@
                                 <div class="row g-3">
                                     <div class="col-md-6">
                                         <label for="parentContactDate" class="form-label">Contact Date</label>
-                                        <input type="date" class="form-control" id="parentContactDate"
-                                            name="ParentContactDate">
+                                        <input type="date" class="form-control" id="parentContactDate" name="ParentContactDate">
                                     </div>
                                     <div class="col-md-6">
                                         <label for="parentContactMethod" class="form-label">Contact Method</label>
@@ -360,9 +231,7 @@
                                     </div>
                                     <div class="col-12">
                                         <label for="parentContactNotes" class="form-label">Contact Notes</label>
-                                        <textarea class="form-control" id="parentContactNotes" name="ParentContactNotes"
-                                            rows="3" maxlength="1000"
-                                            placeholder="Document conversation details, parent response, follow-up needed..."></textarea>
+                                        <textarea class="form-control" id="parentContactNotes" name="ParentContactNotes" rows="3" maxlength="1000" placeholder="Document conversation details, parent response, follow-up needed..."></textarea>
                                     </div>
                                 </div>
                             </div>
@@ -375,7 +244,7 @@
                 <button type="submit" class="btn btn-danger btn-lg" id="submitBtn">Update and Close Referral</button>
                 <button type="button" class="btn btn-secondary" id="saveDraftBtn">Save Progress</button>
             </div>
-
+            
             <div id="output" class="mt-3"></div>
         </form>
     </div>
@@ -383,7 +252,7 @@
     <div class="autosave-status" id="autosaveStatus" style="display: none;"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
+    
     <script>
         const SUBMISSION_ID = '<?!= submissionId ?>';
         let formData = {};
@@ -395,9 +264,9 @@
             if (typeof dateValue === 'string' && !dateValue.includes('-') && !dateValue.includes('T')) {
                 return dateValue;
             }
-
+            
             if (!dateValue) return '';
-
+            
             let date;
             if (typeof dateValue === 'string' && dateValue.includes('-')) {
                 const [year, month, day] = dateValue.split('-');
@@ -405,13 +274,13 @@
             } else {
                 date = dateValue instanceof Date ? dateValue : new Date(dateValue);
             }
-
+            
             if (isNaN(date.getTime())) return 'Invalid date';
-
-            const options = {
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric'
+            
+            const options = { 
+                month: 'short', 
+                day: 'numeric', 
+                year: 'numeric' 
             };
             return date.toLocaleDateString('en-US', options);
         }
@@ -420,9 +289,9 @@
             if (typeof timeValue === 'string' && (timeValue.includes('AM') || timeValue.includes('PM'))) {
                 return timeValue;
             }
-
+            
             if (!timeValue) return '';
-
+            
             let date;
             if (typeof timeValue === 'string' && timeValue.includes(':') && !timeValue.includes(' ')) {
                 const [hours, minutes] = timeValue.split(':');
@@ -430,13 +299,13 @@
             } else {
                 date = timeValue instanceof Date ? timeValue : new Date(timeValue);
             }
-
+            
             if (isNaN(date.getTime())) return '';
-
-            const options = {
-                hour: 'numeric',
-                minute: '2-digit',
-                hour12: true
+            
+            const options = { 
+                hour: 'numeric', 
+                minute: '2-digit', 
+                hour12: true 
             };
             return date.toLocaleTimeString('en-US', options);
         }
@@ -447,7 +316,7 @@
             const month = String(today.getMonth() + 1).padStart(2, '0');
             const day = String(today.getDate()).padStart(2, '0');
             document.getElementById('parentContactDate').value = `${year}-${month}-${day}`;
-
+            
             setupCharacterCounters();
             setupAutoSave();
         }
@@ -455,7 +324,7 @@
         // Check status before loading data
         function checkReferralStatusFirst() {
             updateLoadProgress(10, 'Checking referral status...');
-
+            
             google.script.run
                 .withSuccessHandler(handleStatusCheck)
                 .withFailureHandler(() => {
@@ -469,25 +338,25 @@
             if (statusResult.isCompleted) {
                 isCompleted = true;
                 document.getElementById('allowReprocess').value = 'false';
-
+                
                 const warningDiv = document.getElementById('completedWarning');
                 const completionInfo = document.getElementById('completionInfo');
-
+                
                 if (statusResult.completionDate) {
                     completionInfo.textContent = statusResult.completionDate;
                 } else {
                     completionInfo.textContent = 'an earlier date';
                 }
-
+                
                 warningDiv.style.display = 'block';
             }
-
+            
             loadSubmissionData();
         }
 
         function loadSubmissionData() {
             updateLoadProgress(20, 'Retrieving submission data...');
-
+            
             google.script.run
                 .withSuccessHandler(handleDataLoaded)
                 .withFailureHandler(showError)
@@ -502,11 +371,11 @@
 
         function handleDataLoaded(responseString) {
             updateLoadProgress(60, 'Processing form data...');
-
+            
             setTimeout(() => {
                 populateForm(responseString);
                 updateLoadProgress(100, 'Complete!');
-
+                
                 setTimeout(() => {
                     document.getElementById('loader').style.display = 'none';
                     document.getElementById('adminForm').style.display = 'block';
@@ -525,9 +394,9 @@
                 const headers = response.headers;
                 const data = response.data;
                 const record = {};
-
-                headers.forEach((header, i) => {
-                    record[header] = data[i] || '';
+                
+                headers.forEach((header, i) => { 
+                    record[header] = data[i] || ''; 
                 });
 
                 headers.forEach(header => {
@@ -553,27 +422,14 @@
                 if (response.sheet === 'Major') {
                     setupMajorReferralFields(record);
                 }
-                // In the populateForm function in admin.html (around line 250), add:
-                if (response.sheet === 'Positive') {
-                    // Hide administrative action section for positive referrals
-                    document.querySelector('.admin-section').style.display = 'none';
 
-                    // Update the header
-                    document.querySelector('.form-header h1').textContent = 'Positive Behavior Recognition Review';
-
-                    // Add a success badge
-                    const statusField = document.getElementById('Status');
-                    if (statusField) {
-                        statusField.classList.add('bg-success', 'text-white');
-                    }
-                }
                 setupRewardTripSection(record.GradeLevel, record);
                 formData = record;
-
+                
                 document.getElementById('submissionNumber').value = record.SubmissionNumber;
                 document.getElementById('sheetName').value = response.sheet;
 
-            } catch (e) {
+            } catch(e) {
                 showError({ message: "Failed to parse data from server. " + e.message });
             }
         }
@@ -640,11 +496,11 @@
                     <div class="error-message" id="AdminConsequence-error"></div>
                 </div>
             `;
-
+            
             majorActionsContainer.style.display = 'block';
             const otherCheckbox = majorActionsContainer.querySelector('input[data-other-target="adminConsequenceOtherText"]');
             if (otherCheckbox) {
-                otherCheckbox.addEventListener('change', function () {
+                otherCheckbox.addEventListener('change', function() {
                     const otherText = document.getElementById('adminConsequenceOtherText');
                     otherText.style.display = this.checked ? 'block' : 'none';
                     if (!this.checked) otherText.value = '';
@@ -692,9 +548,9 @@
         function setupRewardTripSection(gradeLevel, record) {
             const rewardTripContainer = document.getElementById('rewardTripSection');
             let tripHtml = '';
-
+            
             const grade = parseInt(gradeLevel);
-
+            
             if (grade === 6) {
                 tripHtml += createRadioGroupHtml('Swings & Things Reward Trip', 'RewardTripPts', record.RewardTripPts || '');
             } else if (grade === 7) {
@@ -703,7 +559,7 @@
                 tripHtml += createRadioGroupHtml('Cedar Point Trip', 'RewardTripPts', record.RewardTripPts || '');
                 tripHtml += createRadioGroupHtml('Washington DC Trip', 'DCPoints', record.DCPoints || '');
             }
-
+            
             if (tripHtml) {
                 rewardTripContainer.innerHTML = `
                     <div class="reward-trip-section">
@@ -720,7 +576,7 @@
                 <label class="form-label fw-bold">${title}</label>
                 <div class="p-3 border rounded">
                     <div class="radio-button-group">`;
-
+            
             for (let i = 0; i <= 10; i++) {
                 const checked = selectedValue == i ? 'checked' : '';
                 html += `<div class="form-check">
@@ -735,34 +591,34 @@
         }
         function handleFormSubmit(e) {
             e.preventDefault();
-
+            
             if (isCompleted && document.getElementById('allowReprocess').value !== 'true') {
                 const modal = new bootstrap.Modal(document.getElementById('reprocessModal'));
                 modal.show();
                 return;
             }
-
+            
             proceedWithSubmission();
         }
 
         function setupEventListeners() {
             document.getElementById('adminForm').addEventListener('submit', handleFormSubmit);
-
-            document.getElementById('confirmReprocess').addEventListener('click', function () {
+            
+            document.getElementById('confirmReprocess').addEventListener('click', function() {
                 document.getElementById('allowReprocess').value = 'true';
                 const modal = bootstrap.Modal.getInstance(document.getElementById('reprocessModal'));
                 modal.hide();
-
+                
                 document.getElementById('completedWarning').style.display = 'none';
                 isCompleted = false;
-
+                
                 proceedWithSubmission();
             });
-
+            
             document.getElementById('saveDraftBtn').addEventListener('click', saveDraft);
             document.getElementById('printBtn').addEventListener('click', printReferral);
             document.getElementById('shareBtn').addEventListener('click', shareReferralPDF);
-
+            
             document.getElementById('adminForm').addEventListener('input', () => {
                 clearTimeout(autoSaveTimer);
                 autoSaveTimer = setTimeout(autoSave, AUTOSAVE_DELAY);
@@ -772,7 +628,7 @@
         function setupCharacterCounters() {
             const adminComments = document.getElementById('adminComments');
             if (adminComments) {
-                adminComments.addEventListener('input', function () {
+                adminComments.addEventListener('input', function() {
                     const remaining = 2000 - this.value.length;
                     document.getElementById('adminCommentsCounter').textContent = remaining;
                     document.getElementById('adminCommentsCounter').classList.toggle('text-danger', remaining < 100);
@@ -783,12 +639,12 @@
         function setupAutoSave() {
             const form = document.getElementById('adminForm');
             const inputs = form.querySelectorAll('input, textarea, select');
-
+            
             inputs.forEach(input => {
                 input.addEventListener('input', () => {
                     clearTimeout(autoSaveTimer);
                     showAutosaveStatus('Changes pending...', 'warning');
-
+                    
                     autoSaveTimer = setTimeout(() => {
                         autoSave();
                     }, AUTOSAVE_DELAY);
@@ -799,7 +655,7 @@
         function collectFormData() {
             const form = document.getElementById('adminForm');
             const formObject = {};
-
+            
             const inputs = form.querySelectorAll('input:not([type="checkbox"]):not([type="radio"]), textarea, select');
             inputs.forEach(input => {
                 if (input.name && input.value) {
@@ -817,7 +673,7 @@
                     checkboxGroups[name].push(cb.value);
                 }
             });
-
+            
             Object.keys(checkboxGroups).forEach(name => {
                 formObject[name] = checkboxGroups[name].join(', ');
             });
@@ -838,7 +694,7 @@
         function validateAdminForm(formData) {
             const errors = [];
             const sheetName = document.getElementById('sheetName').value;
-
+            
             if (sheetName === 'Major') {
                 if (!formData.CodeOfConduct) {
                     errors.push('Code of Conduct selection is required for Major referrals');
@@ -850,25 +706,25 @@
                     errors.push('Administrative Consequence selection is required for Major referrals');
                 }
             }
-
+            
             return errors;
         }
         function proceedWithSubmission() {
             const submitBtn = document.getElementById('submitBtn');
             const outputDiv = document.getElementById('output');
-
+            
             const formData = collectFormData();
-
+            
             const validationErrors = validateAdminForm(formData);
             if (validationErrors.length > 0) {
                 alert('Please fix the following errors:\n\n' + validationErrors.join('\n'));
                 return;
             }
-
+            
             submitBtn.disabled = true;
             submitBtn.textContent = 'Updating...';
             outputDiv.innerHTML = '';
-
+            
             google.script.run
                 .withSuccessHandler(response => {
                     outputDiv.innerHTML = `<div class="alert alert-success">${response}</div>`;
@@ -887,9 +743,9 @@
 
         function autoSave() {
             const formData = collectFormData();
-
+            
             showAutosaveStatus('Auto-saving...', 'info');
-
+            
             google.script.run
                 .withSuccessHandler(() => {
                     showAutosaveStatus('Changes saved automatically', 'success');
@@ -902,10 +758,10 @@
 
         function saveDraft() {
             const formData = collectFormData();
-
+            
             document.getElementById('saveDraftBtn').disabled = true;
             document.getElementById('saveDraftBtn').textContent = 'Saving...';
-
+            
             google.script.run
                 .withSuccessHandler(() => {
                     showAutosaveStatus('Draft saved successfully!', 'success');
@@ -924,9 +780,9 @@
             const shareBtn = document.getElementById('shareBtn');
             shareBtn.disabled = true;
             shareBtn.textContent = 'Creating PDF...';
-
+            
             showAutosaveStatus('Generating PDF attachment...', 'info');
-
+            
             const referralData = {
                 submissionNumber: document.getElementById('SubmissionNumber').value,
                 studentName: document.getElementById('StudentName').value,
@@ -938,7 +794,7 @@
                 adminComments: document.getElementById('adminComments').value || '',
                 referralType: document.getElementById('ReferralType').value
             };
-
+            
             google.script.run
                 .withSuccessHandler(response => {
                     showAutosaveStatus('Email draft created in your Gmail!', 'success');
@@ -960,7 +816,7 @@
             statusDiv.className = `autosave-status alert alert-${type}`;
             statusDiv.textContent = message;
             statusDiv.style.display = 'block';
-
+            
             setTimeout(() => {
                 statusDiv.style.display = 'none';
             }, 3000);
@@ -1029,7 +885,7 @@
         }
 
         // Initialize when DOM is ready
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', function() {
             initializeAdminForm();
             checkReferralStatusFirst();
             setupEventListeners();
@@ -1037,5 +893,4 @@
 
     </script>
 </body>
-
 </html>
