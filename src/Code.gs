@@ -1192,28 +1192,31 @@ function clearCacheNames() {
 
 function processPositiveReferral(formObject, userEmail) {
   try {
+    Logger.log('Processing Positive Referral - Full Form Object:', JSON.stringify(formObject));
+    
     const studentDetails = getStudentInfoByNameOptimized(formObject.studentName);
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    const sheet = ss.getSheetByName('Positive');
+    let sheet = ss.getSheetByName('Positive');
 
     if (!sheet) {
       // Create the Positive sheet if it doesn't exist
-      const newSheet = ss.insertSheet('Positive');
+      sheet = ss.insertSheet('Positive');
       const headers = [
         'StudentName', 'StudentID', 'GradeLevel', 'Team',
         'StaffName', 'StaffEmail', 'DateOfIncident',
-        'PositiveBehavior', 'PositiveDetails', 'Comments',
+        'PositiveBehavior', 'Comments',
         'SubmissionNumber', 'Timestamp', 'Status', 'SubmittedBy'
       ];
-      newSheet.getRange(1, 1, 1, headers.length).setValues([headers]);
-      newSheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
+      sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+      sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
     }
 
     const submissionId = `POS-${Date.now()}`;
 
-    // Get the positive behavior type (now a single value from radio button)
+    // FIXED: Get the positive behavior type - sanitize the value
     const positiveBehavior = sanitizeInput(formObject.PositiveBehavior || '');
-    const positiveDetails = sanitizeInput(formObject.PositiveDetails || '');
+    
+    Logger.log('Positive Behavior Value:', positiveBehavior);
 
     // Get headers for dynamic mapping
     const headers = getSheetHeaders('Positive');
@@ -1228,7 +1231,6 @@ function processPositiveReferral(formObject, userEmail) {
         case 'StaffEmail': return sanitizeInput(formObject.staffEmail);
         case 'DateOfIncident': return `'${formatDateDisplay(formObject.dateOfIncident)}`;
         case 'PositiveBehavior': return positiveBehavior;
-        case 'PositiveDetails': return positiveDetails;
         case 'Comments': return sanitizeInput(formObject.Comments || '');
         case 'SubmissionNumber': return submissionId;
         case 'Timestamp': return `'${formatDateDisplay(new Date())} at ${formatTimeDisplay(new Date())}`;
@@ -1238,6 +1240,8 @@ function processPositiveReferral(formObject, userEmail) {
       }
     });
 
+    Logger.log('New Row Data:', newRow);
+    
     sheet.appendRow(newRow);
 
     // Clear cache
@@ -1257,6 +1261,7 @@ function processPositiveReferral(formObject, userEmail) {
 
   } catch (error) {
     Logger.log('Error in processPositiveReferral: ' + error.message);
+    Logger.log('Stack trace: ' + error.stack);
     throw error;
   }
 }
